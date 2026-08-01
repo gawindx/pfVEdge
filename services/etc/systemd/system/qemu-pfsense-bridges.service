@@ -1,0 +1,24 @@
+[Unit]
+Description=qemu-pfsense-bridges (Network bridge setup)
+After=NetworkManager.service network-online.target
+Wants=network-online.target NetworkManager.service
+Before=qemu-pfsense.service
+Before=qemu-pfsense.target
+PartOf=qemu-pfsense.target
+
+
+[Service]
+Type=oneshot
+WorkingDirectory=__PROJECT_DIR__
+ExecStart=__PROJECT_DIR__/scripts/qemu-networks.sh
+RemainAfterExit=yes
+TimeoutStartSec=60
+Restart=no
+StandardOutput=journal
+StandardError=journal
+# Security
+NoNewPrivileges=yes
+ProtectHostname=yes
+
+[Install]
+WantedBy=qemu-pfsense.target

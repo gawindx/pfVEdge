@@ -1,0 +1,9 @@
+[Unit]
+Description=pfSense QEMU network stack
+Requires=qemu-pfsense-bridges.service
+Requires=qemu-pfsense.service
+After=network.target
+AllowIsolate=yes
+
+[Install]
+WantedBy=network-online.target

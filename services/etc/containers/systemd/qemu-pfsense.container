@@ -1,0 +1,57 @@
+[Unit]
+Description=pfSense VM (QEMU via TAP)
+Requires=qemu-pfsense-bridges.service
+After=qemu-pfsense-bridges.service
+Before=qemu-pfsense.target
+PartOf=qemu-pfsense.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+OnFailure=qemu-pfsense-recovery.service
+OnFailureJobMode=replace-irreversibly
+
+[Container]
+Image=localhost/qemu-pfsense:current
+ContainerName=qemu-pfsense
+EnvironmentFile=__PROJECT_DIR__/config/bridges.env
+Environment=NETWORK=N
+
+#give 60seconds for pfsense vm to gracefully stop
+Environment=TIMEOUT=60
+Environment=QEMU_NET_MODEL=virtio-net-pci
+
+#You can use this as alternative in case of problem
+#Environment=QEMU_NET_MODEL=e1000
+
+#Uncomment if you cannot use KVM
+#Environment=KVM=N
+
+# Without qemu has no network and no internet for download BOOT_IMG
+# and need to be host because tap/bridge need same namespace in host and qemu
+Network=host
+DNS=8.8.8.8
+
+AddCapability=NET_ADMIN
+AddDevice=/dev/vhost-net
+AddDevice=/dev/net/tun
+#Comment if you cannot use KVM
+AddDevice=/dev/kvm
+
+Volume=/run/qemu-pfsense/network.env:/tmp/qemu-tap-pfsense.env:ro
+Volume=__PROJECT_DIR__/storage:/storage
+
+HealthCmd=/healthcheck/healthcheck.sh
+HealthInterval=30s
+HealthRetries=3
+HealthTimeout=10s
+
+[Service]
+Restart=always
+RestartSec=15
+# Temps laissé à QEMU pour s'arrêter proprement
+TimeoutStopSec=120
+RestartPreventExitStatus=10 20 30 40 50 60 70
+
+ExecStartPre=/usr/bin/test -f /run/qemu-pfsense/network.ready
+
+[Install]
+WantedBy=qemu-pfsense.target

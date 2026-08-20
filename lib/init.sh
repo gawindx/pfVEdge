@@ -101,9 +101,9 @@ load_application_libraries()
 set_defaults()
 {
     # Common
-    BACKUP_DIR=$(trim "${BACKUP_DIR:-/var/lib/qemu-pfsense}")
+    BACKUP_DIR=$(trim "${BACKUP_DIR:-/var/lib/pfVEdge}")
     LOG_LEVEL=$(trim "${LOG_LEVEL:-INFO}")
-    QEMU_NETWORK_ENV="${QEMU_NETWORK_ENV:-/run/qemu-pfsense/network.env}"
+    QEMU_NETWORK_ENV="${QEMU_NETWORK_ENV:-/run/pfVEdge/network.env}"
 
     # Bridges
     BRIDGES_NETWORKS=$(trim "${BRIDGES_NETWORKS:-}")
@@ -123,7 +123,7 @@ set_defaults()
     FWD_ALLOW_SSH_HOST=$(trim "${FWD_ALLOW_SSH_HOST:-false}")
     FWD_BACKUP_DIR="${BACKUP_DIR}/firewalld"
     FWD_CFG_DIR="/etc/firewalld"
-    FWD_TMP_DIR="/run/qemu-pfsense-firewalld"
+    FWD_TMP_DIR="/run/pfVEdge-firewalld"
 
     # Taps    
     TAP_IFACES=""

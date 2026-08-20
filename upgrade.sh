@@ -7,9 +7,9 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONTAINER_DIR="$PROJECT_DIR/container"
-IMAGE_PREFIX="qemu-pfsense"
+IMAGE_PREFIX="pfVEdge"
 CURRENT_TAG="${IMAGE_PREFIX}:current"
-BACKUP_FILE="/run/qemu-pfsense.previous"
+BACKUP_FILE="/run/pfVEdge.previous"
 
 # ==========================================
 # ROOT
@@ -97,8 +97,8 @@ podman tag \
 
 echo "[INFO] Restarting pfSense stack"
 
-systemctl stop qemu-pfsense.target || true
-systemctl start qemu-pfsense.target
+systemctl stop pfVEdge.target || true
+systemctl start pfVEdge.target
 
 # ==========================================
 # VALIDATION
@@ -124,7 +124,7 @@ if (( rc >= 2 )); then
         podman tag \
             "$PREVIOUS_TAG" \
             "$CURRENT_TAG"
-        systemctl restart qemu-pfsense.target
+        systemctl restart pfVEdge.target
         echo "[INFO] Rollback completed"
     else
         echo "[ERROR] No rollback image available"

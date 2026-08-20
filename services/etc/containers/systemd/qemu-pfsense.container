@@ -1,21 +1,21 @@
 [Unit]
 Description=pfSense VM (QEMU via TAP)
-Requires=qemu-pfsense-bridges.service
-After=qemu-pfsense-bridges.service
-Before=qemu-pfsense.target
-PartOf=qemu-pfsense.target
+Requires=pfVEdge-bridges.service
+After=pfVEdge-bridges.service
+Before=pfVEdge.target
+PartOf=pfVEdge.target
 StartLimitIntervalSec=300
 StartLimitBurst=5
-OnFailure=qemu-pfsense-recovery.service
+OnFailure=pfVEdge-recovery.service
 OnFailureJobMode=replace-irreversibly
 
 [Container]
-Image=localhost/qemu-pfsense:current
-ContainerName=qemu-pfsense
+Image=localhost/pfVEdge:current
+ContainerName=pfVEdge
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
 Environment=NETWORK=N
 
-#give 60seconds for pfsense vm to gracefully stop
+#give 60seconds for pfSense vm to gracefully stop
 Environment=TIMEOUT=60
 Environment=QEMU_NET_MODEL=virtio-net-pci
 
@@ -36,7 +36,7 @@ AddDevice=/dev/net/tun
 #Comment if you cannot use KVM
 AddDevice=/dev/kvm
 
-Volume=/run/qemu-pfsense/network.env:/tmp/qemu-tap-pfsense.env:ro
+Volume=/run/pfVEdge/network.env:/tmp/qemu-tap-pfSense.env:ro
 Volume=__PROJECT_DIR__/storage:/storage
 
 HealthCmd=/healthcheck/healthcheck.sh
@@ -51,7 +51,7 @@ RestartSec=15
 TimeoutStopSec=120
 RestartPreventExitStatus=10 20 30 40 50 60 70
 
-ExecStartPre=/usr/bin/test -f /run/qemu-pfsense/network.ready
+ExecStartPre=/usr/bin/test -f /run/pfVEdge/network.ready
 
 [Install]
-WantedBy=qemu-pfsense.target
+WantedBy=pfVEdge.target

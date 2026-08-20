@@ -12,7 +12,7 @@ init "$@"
 # Remove ready file if exists
 # ============================================================
 
-rm -f /run/qemu-pfsense/network.ready
+rm -f /run/pfVEdge/network.ready
 
 # ============================================================
 # Context
@@ -53,8 +53,8 @@ log_info "[Network] Verify if User's config exists"
 [[ ! -d "$(profile_path recovery)" ]] && \
 log_info "[Network] User's config missing, create it!"
 save_profile
-log_info "[Network] Configuring Firewalld for pfsense"
-configure_firewall pfsense
+log_info "[Network] Configuring Firewalld for pfSense"
+configure_firewall pfSense
 
 # ============================================================
 # Validate bridges
@@ -105,4 +105,4 @@ log_info "[Network] Network preparation completed ✅"
 # Create Ready File for QEMU Environment
 # ============================================================
 
-touch /run/qemu-pfsense/network.ready
+touch /run/pfVEdge/network.ready

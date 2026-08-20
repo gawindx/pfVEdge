@@ -6,15 +6,15 @@
 
 configure_firewall()
 {
-    local mode="${1:-pfsense}"
+    local mode="${1:-pfSense}"
 
     if ! check_firewalld; then
         log_warn "[Firewalld] firewalld not installed → skipping"
         return
     fi
     case "$mode" in
-        pfsense)
-            apply_profile pfsense
+        pfSense)
+            apply_profile pfSense
             ;;
         recovery)
             apply_profile recovery
@@ -55,10 +55,10 @@ zone_exists()
 }
 
 # -----------------------------------------------------------------------------
-# Create pfsense/recovery Zones
+# Create pfSense/recovery Zones
 # -----------------------------------------------------------------------------
 
-create_pfsense_fwall_rules()
+create_pfSense_fwall_rules()
 {
     log_info "[Firewalld] Applying pfSense firewall profile"
     for br in "${BRIDGE_NAMES[@]}"; do
@@ -226,8 +226,8 @@ apply_profile()
             # Restore SELinux context if available
             selinux_rcon "${FWD_CFG_DIR}"
             ;;
-        pfsense)
-            generate_profile pfsense
+        pfSense)
+            generate_profile pfSense
             ;;
         recovery)
             generate_profile recovery
@@ -253,8 +253,8 @@ generate_profile()
         reset_firewalld
         log_info "[Firewalld] Generating ${profile} firewalld profile"
         case "$profile" in
-            pfsense)
-                create_pfsense_fwall_rules
+            pfSense)
+                create_pfSense_fwall_rules
                 ;;
             recovery)
                 log_info "[Firewalld] Generating recovery firewalld profile"

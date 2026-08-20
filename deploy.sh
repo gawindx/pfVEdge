@@ -10,7 +10,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVICES_DIR="$PROJECT_DIR/services"
 CONTAINER_DIR="$PROJECT_DIR/container"
 
-IMAGE_PREFIX="qemu-pfsense"
+IMAGE_PREFIX="pfVEdge"
 CURRENT_TAG="${IMAGE_PREFIX}:current"
 
 # ==========================================
@@ -92,7 +92,7 @@ systemctl daemon-reload
 echo "[INFO] Enabling units"
 find "$SERVICES_DIR/etc/systemd/system" \
     -type f \
-    \( ! -name "qemu-pfsense-recovery.service" \
+    \( ! -name "pfVEdge-recovery.service" \
     -name "*.service" -o -name "*.timer" \
     -o -name "*.target" \)\
 | while read -r src
@@ -112,4 +112,4 @@ podman images | grep "$IMAGE_PREFIX" || true
 #TODO ajouter information pour remplir fichier conf
 echo
 echo "Start:"
-echo " systemctl start qemu-pfsense.target"
+echo " systemctl start pfVEdge.target"

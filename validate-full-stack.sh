@@ -6,16 +6,16 @@ set -uo pipefail
 # "set +e" right after it returns (see main()).
 
 # =========================================================================
-# qemu-pfsense — Full stack validator
+# pfVEdge — Full stack validator
 #
 # Modes:
 #   network   → host network layer only (bridges, attachments, TAPs,
-#               firewalld "pfsense" profile). Safe to run immediately
-#               after qemu-pfsense-bridges.service, VM not required.
+#               firewalld "pfSense" profile). Safe to run immediately
+#               after pfVEdge-bridges.service, VM not required.
 #   full      → network checks + container/VM checks, with a retry
 #               window since pfSense needs real boot time (default).
 #   recovery  → validates the "recovery" firewalld fallback instead of
-#               the "pfsense" one (run this after a recovery trigger).
+#               the "pfSense" one (run this after a recovery trigger).
 #
 # Exit codes:
 #   0 → everything OK (warnings tolerated)
@@ -23,7 +23,7 @@ set -uo pipefail
 #   2 → at least one ERROR
 # =========================================================================
 
-CONTAINER_NAME="qemu-pfsense"
+CONTAINER_NAME="pfVEdge"
 MODE="full"
 TIMEOUT=120
 INTERVAL=5
@@ -287,11 +287,11 @@ check_taps() {
 }
 
 # =========================================================================
-# Section: firewalld — "pfsense" profile (one zone per bridge)
+# Section: firewalld — "pfSense" profile (one zone per bridge)
 # =========================================================================
 
-check_firewalld_pfsense() {
-    section "Host - Firewalld (pfsense profile)"
+check_firewalld_pfSense() {
+    section "Host - Firewalld (pfSense profile)"
 
     if ! command -v firewall-cmd &>/dev/null; then
         warn "firewalld not installed — skipping"
@@ -533,7 +533,7 @@ main() {
         check_bridges
         check_attachments
         check_taps
-        check_firewalld_pfsense
+        check_firewalld_pfSense
         check_sysctl
     fi
 

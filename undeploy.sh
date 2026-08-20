@@ -8,7 +8,7 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVICES_DIR="$PROJECT_DIR/services"
 TARGET_ROOT="/"
-IMAGE_PREFIX="qemu-pfsense"
+IMAGE_PREFIX="pfVEdge"
 
 # ==========================================
 # CHECK ROOT
@@ -83,7 +83,7 @@ done
 # CLEAN STATE FILES
 # ==========================================
 
-rm -f /run/qemu-pfsense-restarts 2>/dev/null || true
+rm -f /run/pfVEdge-restarts 2>/dev/null || true
 
 # ==========================================
 # REMOVE IMAGES (OPTIONAL BUT CLEAN)

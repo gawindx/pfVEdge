@@ -1,7 +1,7 @@
 [Unit]
 Description=pfSense QEMU network stack
-Requires=qemu-pfsense-bridges.service
-Requires=qemu-pfsense.service
+Requires=pfVEdge-bridges.service
+Requires=pfVEdge.service
 After=network.target
 AllowIsolate=yes
 

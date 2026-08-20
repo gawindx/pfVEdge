@@ -5,7 +5,7 @@ FROM docker.io/qemux/qemu:7.32
 # ============================================
 # Expose Web UI (noVNC)
 # ============================================
-ENV SUPPORT="https://github.com/gawindx/pfSense-qemu"
+ENV SUPPORT="https://github.com/gawindx/pfVEdge"
 EXPOSE 8006
 
 # ============================================
@@ -15,7 +15,7 @@ EXPOSE 8006
 ENV NETWORK="N"
 
 # Boot image
-# may be overriden for newer version downloaded from pfsense account
+# may be overriden for newer version downloaded from pfSense account
 ENV BOOT="https://repo.ialab.dsu.edu/pfsense/pfSense-CE-memstick-2.7.2-RELEASE-amd64.img.gz"
 
 # VM resources (overridable)

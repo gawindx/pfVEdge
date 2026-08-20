@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-log()   { echo "[qemu-pfsense][INFO] $*"; }
-warn()  { echo "[qemu-pfsense][WARN] $*" >&2; }
-error() { echo "[qemu-pfsense][ERROR] $*" >&2; }
+log()   { echo "[pfVEdge][INFO] $*"; }
+warn()  { echo "[pfVEdge][WARN] $*" >&2; }
+error() { echo "[pfVEdge][ERROR] $*" >&2; }
 
-ENV_FILE="/tmp/qemu-tap-pfsense.env"
+ENV_FILE="/tmp/qemu-tap-pfSense.env"
 if [[ ! -f "$ENV_FILE" ]]; then
     error "Missing TAP env file inside container"
     exit 1

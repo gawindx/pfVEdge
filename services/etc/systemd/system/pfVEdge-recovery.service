@@ -1,0 +1,8 @@
+[Unit]
+Description=pfSense emergency firewall recovery
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=__PROJECT_DIR__/scripts/firewalld-profile.sh apply recovery
+TimeoutStartSec=60

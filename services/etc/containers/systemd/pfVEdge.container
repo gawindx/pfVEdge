@@ -10,7 +10,7 @@ OnFailure=pfVEdge-recovery.service
 OnFailureJobMode=replace-irreversibly
 
 [Container]
-Image=localhost/pfVEdge:current
+Image=localhost/pfvedge:current
 ContainerName=pfVEdge
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
 Environment=NETWORK=N

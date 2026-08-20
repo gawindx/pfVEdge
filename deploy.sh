@@ -10,7 +10,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVICES_DIR="$PROJECT_DIR/services"
 CONTAINER_DIR="$PROJECT_DIR/container"
 
-IMAGE_PREFIX="pfVEdge"
+IMAGE_PREFIX="pfvedge"
 CURRENT_TAG="${IMAGE_PREFIX}:current"
 
 # ==========================================

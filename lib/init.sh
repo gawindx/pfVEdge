@@ -28,7 +28,7 @@ init_paths()
     INPUT_FILE=""
     NET_CONF_FILE=""
     NET_CONF_FILE="$PROJECT_DIR/config/bridges.env"
-    STORAGE_DIR=$(trim "${PROJECT_DIR}/storage")
+    STORAGE_DIR="${PROJECT_DIR}/storage"
     [[ -d "${STORAGE_DIR}" ]] || mkdir -p "${STORAGE_DIR}"
 }
 

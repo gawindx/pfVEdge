@@ -55,7 +55,7 @@ validate_ipv4() {
 # ============================================================
 
 validate_ipv4gw() {
-    log_debug "[Validate] Receive '$1' as IPV4"
+    log_debug "[Validate] Receive '$1' as IPV4 GW"
     [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
         log_error "[Validate] Invalid IPv4 Gateway: '$1'"
         exit "$E_VALIDATION"
@@ -126,8 +126,10 @@ validate_bridges()
     local i
 
     log_info "[Validate] Validating bridges"
+    log_debug "[Validate] bridges names : \n ${BRIDGE_NAMES[@]}"
     for bridge in "${BRIDGE_NAMES[@]}"
     do
+        log_debug "[Validate] Validating bridge : ${bridge}"
         validate_bridge "$bridge" || return 1
     done
     validate_fw_roles || return 1
@@ -384,6 +386,7 @@ validate_fw_roles()
                 ;;
         esac
     done
+    log_debug "[Validate] Found ${wan} Wan connection, and ${lan} Lan connection"
     if [[ "$wan" -ne 1 ]]; then
         log_error "[Validate] Exactly one WAN bridge required"
         return 1

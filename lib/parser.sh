@@ -35,14 +35,16 @@ parse_networks() {
             for idx in "${!arr[@]}"; do
                 val=$(trim "${arr[idx]}")
                 [[ -z "$val" ]] && continue
-                clean[$idx]=("$val")
+                clean["$idx"]="$val"
             done
-            $ipdv4="${clean[0]}"
+            $ipv4="${clean[0]}"
             validate_ipv4 "$ipv4"
-            [[ -n "${clean[1]}" ]] && {
-                $ipdv4gw="${clean[1]}"
-                validate_ipv4gw 
-            } || $ipdv4gw=""
+            if [[ "${#clean[@]}" -gt 1 ]]: then
+                $ipv4gw="${clean[1]}"
+                validate_ipv4gw "$ipv4gw"
+            else
+                $ipv4gw=""
+            fi
         fi
         [[ -n "$ifaces" ]] && validate_interfaces "$ifaces"
         # Normalize VLAN

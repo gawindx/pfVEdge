@@ -75,7 +75,7 @@ create_pfSense_fwall_rules()
             --permanent \
             --zone="${zone}" \
             --add-interface="${br}"
-        log_debug "[Firewalld] OK, ${br} set to${zone}" 
+        log_debug "[Firewalld] OK, ${br} set to ${zone}" 
         # Security: Fedora must not expose services
         run firewall-cmd \
             --permanent \

@@ -23,7 +23,7 @@ configure_bridge_ip() {
     else
         log_debug "[Bridges] Configure Bridge '$bridge' with manual IP '$ipv4'"
         run nmcli connection modify "$bridge" ipv4.method manual ipv4.addresses "$ipv4" ipv6.method disabled
-        if [[ -z "$ipv4gw" ]]; then
+        if [[ -n "$ipv4gw" ]]; then
             log_debug "[Bridges] Configure Bridge '$bridge' Gateway with IP '$ipv4gw'"
             run nmcli connection modify "$bridge" ipv4.gateway "$ipv4gw"
         fi

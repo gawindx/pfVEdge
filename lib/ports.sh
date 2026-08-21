@@ -49,7 +49,7 @@ handle_nm_migration() {
 # Create Podman Network
 # ============================================================
 
-# DMZ / service networks are created in "macvlan" mode, directly on top
+# DMZ / service networks are created in "bridge" mode, directly on top
 # of the host bridge that already carries pfSense's TAP for that segment
 # (e.g. br-net-dmz). Containers attached to this network get their own
 # MAC/IP straight on that L2 segment, exactly as if they were plugged
@@ -59,8 +59,8 @@ handle_nm_migration() {
 # must be configured INSIDE pfSense as that interface's own address —
 # it is no longer owned by any interface on the Fedora host.
 #
-# Trade-off to be aware of: with macvlan, the Fedora host itself cannot
-# talk directly to containers on this network (macvlan's well-known
+# Trade-off to be aware of: with bridge, the Fedora host itself cannot
+# talk directly to containers on this network (bridge's well-known
 # host<->child limitation). That's consistent with this project's model
 # (all traffic to/from these containers should go through pfSense), but
 # it does mean host-side monitoring/healthchecks can't reach them
@@ -73,7 +73,7 @@ create_podman_iface() {
     declare -A netinfo
     local subnet gateway
 
-    log_debug "[Attach Ports] Create podman macvlan network '$bridge' (parent=$bridge)"
+    log_debug "[Attach Ports] Create podman bridge network '$bridge' (parent=$bridge)"
     calc_network_info "$ipv4" netinfo
     log_debug "[Attach Ports] Create network with subnet '${netinfo[network]}/${netinfo[cidr]}' and gateway '${netinfo[gateway]}'"
     [[  -z "${netinfo[network]}" ]] || {
@@ -83,14 +83,17 @@ create_podman_iface() {
         gateway="--gateway ${netinfo[gateway]}"
         log_warn "[Attach Ports] Gateway '${netinfo[gateway]}' must be configured on pfSense's own '$bridge' interface, not on the host"
     }
-    log_debug "[Attach Ports] Create podman network '$iface' attached to '$bridge'"
-    run podman network exists "$bridge" && return
-    run podman network create $subnet $gateway \
-        --driver macvlan \
+    log_debug "[Attach Ports] Create podman bridge network '$iface' attached to '$bridge'"
+    run podman network exists "pod-${bridge}" && return
+    run podman network create  $gateway \
+        --driver bridge \
+        --subnet "${subnet}" \
+        --gateway "${gateway}" \
         --ipam-driver host-local \
         --disable-dns \
-        --opt parent="$bridge" \
-        "$bridge"
+        --opt mode=unmanaged \
+        --opt com.docker.network.bridge.name=${bridge} \
+        "pod-${bridge}"
 }
 
 # ============================================================
@@ -132,7 +135,7 @@ attach_bridge_ports() {
         for iface in "${ifaces[@]}"; do
             log_debug "[Attach Ports] Attach '$iface' to '$bridge' (type='$iface_type')"
             if [[ "$iface_type" == "podman" ]]; then 
-                log_debug "[Attach Ports] Create podman macvlan network (no bridge-slave needed)"
+                log_debug "[Attach Ports] Create podman bridge network (no bridge-slave needed)"
                 create_podman_iface "$bridge" "$iface" "$ipv4"
                 continue
             fi

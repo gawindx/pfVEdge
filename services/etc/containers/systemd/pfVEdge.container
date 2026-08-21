@@ -1,5 +1,5 @@
 [Unit]
-Description=pfSense VM (QEMU via TAP)
+Description=pfVEdge container with pfSense VM
 Requires=pfVEdge-bridges.service
 After=pfVEdge-bridges.service
 Before=pfVEdge.target
@@ -15,7 +15,7 @@ ContainerName=pfVEdge
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
 Environment=NETWORK=N
 
-#give 60seconds for pfSense vm to gracefully stop
+#give 60 seconds for pfSense vm to gracefully stop
 Environment=TIMEOUT=60
 Environment=QEMU_NET_MODEL=virtio-net-pci
 
@@ -47,7 +47,7 @@ HealthTimeout=10s
 [Service]
 Restart=always
 RestartSec=15
-# Temps laissé à QEMU pour s'arrêter proprement
+#give 120 seconds for qemu to gracefully stop
 TimeoutStopSec=120
 RestartPreventExitStatus=10 20 30 40 50 60 70
 

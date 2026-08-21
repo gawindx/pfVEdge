@@ -145,7 +145,7 @@ backup_current_firewalld()
     log_info "[Firewalld] Backing up current configuration"
     rm -rf "${backup_dir}"
     mkdir -p "${backup_dir}"
-    cp -a "${FWD_CFG_DIR}/." "${backup_dir}/"
+    cp -ar "${FWD_CFG_DIR}" "${backup_dir}"
     log_info "[Firewalld] Temporary backup created"
 }
 
@@ -163,7 +163,7 @@ restore_current_firewalld()
     log_debug "[Firewalld] Stopping Firewalld"
     systemctl stop firewalld
     rm -rf "${FWD_CFG_DIR:?}/"*
-    cp -a "${backup_dir}/." "${FWD_CFG_DIR}/"
+    cp -ar "${backup_dir}" "${FWD_CFG_DIR}"
     selinux_rcon "${FWD_CFG_DIR}" || true
     log_debug "[Firewalld] Configuration Restored"
     systemctl start firewalld
@@ -181,7 +181,7 @@ reset_firewalld()
     log_info "[Firewalld] Resetting firewalld configuration"
     systemctl stop firewalld
     rm -rf /etc/firewalld/*
-    cp -a /usr/lib/firewalld/. /etc/firewalld/
+    cp -ar /usr/lib/firewalld /etc/firewalld
     selinux_rcon "/etc/firewalld"
     systemctl start firewalld
 }
@@ -199,7 +199,7 @@ save_profile()
     log_info "[Firewalld] Saving firewalld Actual configuration"
     rm -rf "${destination}"
     mkdir -p "${destination}"
-    cp -a "${FWD_CFG_DIR}/." "${destination}/"
+    cp -ar "${FWD_CFG_DIR}" "${destination}"
     log_info "[Firewalld] Configuration saved: ${destination}"
 }
 
@@ -219,10 +219,10 @@ apply_profile()
             mkdir -p "${FWD_TMP_DIR}"
             # Backup current running configuration
             rm -rf "${FWD_TMP_DIR}/current"
-            cp -a "${FWD_CFG_DIR}" "${FWD_TMP_DIR}/current"
+            cp -ar "${FWD_CFG_DIR}" "${FWD_TMP_DIR}/current"
             systemctl stop firewalld
             rm -rf "${FWD_CFG_DIR:?}/"*
-            cp -a "${source}/." "${FWD_CFG_DIR}/"
+            cp -ar "${source}" "${FWD_CFG_DIR}"
             # Restore SELinux context if available
             selinux_rcon "${FWD_CFG_DIR}"
             ;;

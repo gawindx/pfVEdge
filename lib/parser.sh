@@ -6,6 +6,7 @@ parse_networks() {
     declare -gA BRIDGE_IFACE_TYPE
     declare -gA BRIDGE_IFACES
     declare -gA BRIDGE_IPV4
+    declare -gA BRIDGE_IP_GW
     declare -gA BRIDGE_VLANS
     declare -gA BRIDGE_FWROLE
     declare -ga BRIDGE_NAMES
@@ -28,7 +29,21 @@ parse_networks() {
         fi
         seen[$bridge]=1
         [[ -n "$iface_type" ]] && validate_iface_type "$iface_type"
-        [[ -n "$ipv4" ]] && validate_ipv4 "$ipv4"
+        if [[ -n "$ipv4" ]]; then
+            IFS=',' read -ra arr <<< "$ipv4"
+            clean=()
+            for idx in "${!arr[@]}"; do
+                val=$(trim "${arr[idx]}")
+                [[ -z "$val" ]] && continue
+                clean[$idx]=("$val")
+            done
+            $ipdv4="${clean[0]}"
+            validate_ipv4 "$ipv4"
+            [[ -n "${clean[1]}" ]] && {
+                $ipdv4gw="${clean[1]}"
+                validate_ipv4gw 
+            } || $ipdv4gw=""
+        fi
         [[ -n "$ifaces" ]] && validate_interfaces "$ifaces"
         # Normalize VLAN
         if [[ -n "$vlans" ]]; then
@@ -49,6 +64,7 @@ parse_networks() {
         BRIDGE_IFACE_TYPE["$bridge"]=$(trim "$iface_type")
         BRIDGE_IFACES["$bridge"]=$(trim "$ifaces")
         BRIDGE_IPV4["$bridge"]=$(trim "$ipv4")
+        BRIDGE_IP_GW["$bridge"]=$(trim "$ipv4gw")
         BRIDGE_VLANS["$bridge"]=$(trim "$vlans")
         BRIDGE_FWROLE["$bridge"]=$(trim "$fwrole")
         log_debug "[Parser] Parsed $bridge → ifaces=$ifaces ip=$ipv4 vlans=$vlans type=$iface_type firewall_role=$fwrole"

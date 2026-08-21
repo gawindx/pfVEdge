@@ -138,7 +138,5 @@ prepare_environment()
 
     validate_environment
     parse_networks "$BRIDGES_NETWORKS"
-    validate_bridges
-    validate_taps
     log_info "[Init] Environment Validated successfuly"
 }

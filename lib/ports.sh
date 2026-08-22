@@ -83,17 +83,15 @@ create_podman_iface() {
         gateway="--gateway ${netinfo[gateway]}"
         log_warn "[Attach Ports] Gateway '${netinfo[gateway]}' must be configured on pfSense's own '$bridge' interface, not on the host"
     }
-    log_debug "[Attach Ports] Create podman bridge network '$iface' attached to '$bridge'"
-    run podman network exists "pod-${bridge}" && return
-    run podman network create  $gateway \
+    log_debug "[Attach Ports] Create podman bridge network '$iface' attached to '$bridge' with subnet '$subnet' and gateway '$gateway'"
+    run podman network exists "${bridge}" && return
+    run podman network create ${subnet} ${gateway} \
         --driver bridge \
-        --subnet "${subnet}" \
-        --gateway "${gateway}" \
         --ipam-driver host-local \
         --disable-dns \
         --opt mode=unmanaged \
         --opt com.docker.network.bridge.name=${bridge} \
-        "pod-${bridge}"
+        "${bridge}"
 }
 
 # ============================================================

@@ -37,13 +37,13 @@ parse_networks() {
                 [[ -z "$val" ]] && continue
                 clean["$idx"]="$val"
             done
-            $ipv4="${clean[0]}"
+            ipv4="${clean[0]}"
             validate_ipv4 "$ipv4"
-            if [[ "${#clean[@]}" -gt 1 ]]: then
-                $ipv4gw="${clean[1]}"
+            if [[ "${#clean[@]}" -gt 1 ]]; then
+                ipv4gw="${clean[1]}"
                 validate_ipv4gw "$ipv4gw"
             else
-                $ipv4gw=""
+                ipv4gw=""
             fi
         fi
         [[ -n "$ifaces" ]] && validate_interfaces "$ifaces"

@@ -73,11 +73,7 @@ set_mtu() {
 get_ssh_port()
 {
     local port
-    port=$(awk '
-    /^[[:space:]]*Port[[:space:]]+[0-9]+/ {
-        print $2
-        exit
-    }' /etc/ssh/sshd_config 2>/dev/null || true)
+    port=$(sshd -T 2>/dev/null | awk '$1 == "port" { print $2; exit }')
     echo "${port:-22}"
 }
 

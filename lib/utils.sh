@@ -117,7 +117,7 @@ calc_network_info() {
   result[network]=$(int_to_ip "$net")
 
   if [ "$cidr" -le 30 ]; then
-    result[gateway]=$(int_to_ip $(( net + 1 )))
+    result[gateway]=$(int_to_ip $(( net + ${FWD_GW_OFFSET} )))
   else
     result[gateway]=""
   fi

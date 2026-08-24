@@ -127,7 +127,8 @@ set_defaults()
     FWD_CFG_DIR="/etc/firewalld"
     FWD_TMP_DIR="/run/pfVEdge-firewalld"
     FWD_INIT="$(trim "${FWD_INIT:-false}")"
-    FWD_STATE_FILE="${FWD_CFG_DIR}/firewalld.initialised"
+    FWD_STATE_FILE="${FWD_BACKUP_DIR}/firewalld.initialised"
+    FWD_GW_OFFSET="${FWD_GW_OFFSET:-1}"
 
     # Taps    
     TAP_IFACES=""

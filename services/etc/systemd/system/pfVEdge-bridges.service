@@ -4,7 +4,7 @@ After=NetworkManager.service network-online.target
 Wants=network-online.target NetworkManager.service
 Before=pfVEdge.service
 Before=pfVEdge.target
-PartOf=pfVEdge.target
+PartOf=pfVEdge.target pvFEdge.service
 
 
 [Service]

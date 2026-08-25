@@ -94,7 +94,11 @@ do
     #
     # TAP backend
     #
-    QEMU_NET_ARGS+=" -netdev tap,id=${tap},ifname=${tap},script=no,downscript=no"
+    if [[ "$NET_MODEL" == "virtio-net-pci" ]]; then
+        QEMU_NET_ARGS+=" -netdev tap,id=${tap},ifname=${tap},script=no,downscript=no,vhost=on"
+    else
+        QEMU_NET_ARGS+=" -netdev tap,id=${tap},ifname=${tap},script=no,downscript=no"
+    fi
     #
     # NIC model
     #

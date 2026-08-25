@@ -58,7 +58,8 @@ pfVEdge/
 ├── scripts/
 │   ├── qemu-networks.sh        # Prepares bridges + TAPs + firewalld before starting the VM
 │   ├── firewalld-profile.sh    # CLI: backup / apply <profile> / reset
-│   └── restore-nmcli.sh        # Restores the original NetworkManager configuration
+│   ├── restore-nmcli.sh        # Restores the original NetworkManager configuration
+│   └── validate-full-stack.sh  # Test full stack
 ├── services/etc/
 │   ├── containers/systemd/pfVEdge.container   # Podman quadlet (the pfSense VM)
 │   └── systemd/system/
@@ -66,7 +67,7 @@ pfVEdge/
 │       ├── pfVEdge-bridges.service            # Prepares the host network
 │       └── pfVEdge-recovery.service           # Emergency firewalld fallback
 ├── storage/                    # Persistent disk of the pfSense VM
-├── deploy.sh / undeploy.sh / upgrade.sh / validate-full-stack.sh
+├── deploy.sh / undeploy.sh / upgrade.sh
 └── license.md
 ```
 

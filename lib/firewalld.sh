@@ -64,6 +64,7 @@ create_pfSense_fwall_rules()
     for br in "${BRIDGE_NAMES[@]}"; do
         local zone="$br"
 
+        log_info "[Firewalld] Configure bridge '$br' with zone '$zone'"
         # NOTE: For "podman"-type bridges (e.g., br-net-dmz), this DROP
         # zone protects only the host itself (it has no IP address on the bridge).
         # Traffic between pfSense and macvlan containers remains pure L2
@@ -72,7 +73,7 @@ create_pfSense_fwall_rules()
         if [[ "${NET_INIT}" == "true" ]]; then
             log_debug "[Firewalld] NET_INIT=true, resetting firewalld configuration"
         else
-            log_debug "[Firewalld] NET_INIT=true, resetting firewalld configuration"
+            log_debug "[Firewalld] NET_INIT=false, using existing"
         fi
         if [[ ! -e "${NET_STATE_FILE}" ]]; then
             log_debug "[Firewalld] NET_STATE_FILE not found, creating it"
@@ -80,6 +81,7 @@ create_pfSense_fwall_rules()
             log_debug "[Firewalld] NET_STATE_FILE exists"
         fi
         if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
+            log_debug "[Firewalld] Initializing zone ${zone}"
             init_zone "${zone}"    
         fi
         log_debug "[Firewalld] Assigning ${br} -> ${zone}"

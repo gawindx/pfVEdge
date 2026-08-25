@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 
 bridge_exists() {
+    log_debug "[Bridges] Checking if bridge '$1' exists"
     nmcli -t -f NAME,TYPE connection show | grep -Fxq "$1:bridge"
+    r=$?
+    if [[ $r -ne 0 ]]; then
+        log_debug "[Bridges] Bridge '$1' does not exist"
+        return 1
+    fi
+    log_debug "[Bridges] Bridge '$1' exists"
+    return 0
 }
 
 configure_bridge_ip() {
@@ -41,6 +49,8 @@ ensure_bridge() {
         log_debug "[Bridges] Bridge '$bridge' need to be created"
         log_info "[Bridges] Creating bridge '$1'"
         run nmcli connection add type bridge ifname "$bridge" con-name "$bridge" bridge.stp no
+    else
+        log_debug "[Bridges] Bridge '$bridge' already exists"
     fi
     configure_bridge_ip "$bridge" "$ipv4" "$iface_type" "$ipv4gw"
     run nmcli connection up "$bridge"

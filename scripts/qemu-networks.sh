@@ -53,7 +53,7 @@ log_info "[Network] Applying sysctl"
 apply_sysctl
 log_info "[Network] Verify if User's config exists"
 [[ ! -d "$(profile_path recovery)" ]] && \
-log_info "[Network] User's config missing, create it!"
+    log_info "[Network] User's config missing, create it!"
 save_profile
 log_info "[Network] Configuring Firewalld for pfSense"
 configure_firewall pfSense

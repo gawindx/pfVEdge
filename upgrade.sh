@@ -97,8 +97,7 @@ podman tag \
 
 echo "[INFO] Restarting pfSense stack"
 
-systemctl stop pfVEdge.target || true
-systemctl start pfVEdge.target
+systemctl restart pfVEdge.target || true
 
 # ==========================================
 # VALIDATION

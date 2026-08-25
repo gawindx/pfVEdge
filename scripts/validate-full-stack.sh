@@ -248,17 +248,16 @@ check_podman_iface() {
     ok "podman network '$bridge' exists"
 
     driver=$(podman network inspect "$bridge" --format '{{.Driver}}' 2>/dev/null || true)
-    [[ "$driver" == "macvlan" ]] && ok "podman network '$bridge' uses the macvlan driver" \
-                                  || warn "podman network '$bridge' uses driver '${driver:-unknown}', expected macvlan"
+    [[ "$driver" == "bridge" ]] && ok "podman network '$bridge' uses the bridge driver" \
+                                  || warn "podman network '$bridge' uses driver '${driver:-unknown}', expected bridge"
 
-    parent=$(podman network inspect "$bridge" --format '{{.NetworkInterface}}' 2>/dev/null || true)
     if [[ "$parent" == "$bridge" ]]; then
         ok "podman network '$bridge' is parented directly on $bridge"
     else
         warn "podman network '$bridge' parent is '${parent:-unknown}', expected '$bridge'"
     fi
 
-    info "macvlan child interfaces are created per-container at runtime — nothing persistent to check on the host for '$bridge'"
+    info "bridge child interfaces are created per-container at runtime — nothing persistent to check on the host for '$bridge'"
 }
 
 # =========================================================================

@@ -58,10 +58,16 @@ log "Using QEMU network model: $NET_MODEL"
 #
 NET_MODEL_OPTIONS=""
 if [[ "$NET_MODEL" == "virtio-net-pci" ]]; then
-    if [[ "${QEMU_VIRTIO_NET_MQ:-false}" == "true" ]]; then
-        NET_MODEL_OPTIONS=",mq=on,vectors=6"
-        log "Virtio multiqueue enabled"
+    if [[ "${QEMU_VIRTIO_NET_MQ:-false}" == "true" ]] && [ "${CPU_CORES:-1}" -gt 1 ]; then
+        # Formule : (2 * CPU_CORES) + 2
+        local vectors_val=$(( (CPU_CORES * 2) + 2 ))
+        NET_MODEL_OPTIONS=",mq=on,vectors=$vectors_val"
+        log "Virtio multiqueue enabled with $CPU_CORES queues (vectors=$vectors_val)"
+    else
+        NET_MODEL_OPTIONS=",mq=off,vectors=3"
+        log "Virtio multiqueue disabled (1 CPU core or feature off)"
     fi
+
 fi
 
 # ==========================================

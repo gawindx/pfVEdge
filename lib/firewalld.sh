@@ -69,7 +69,7 @@ create_pfSense_fwall_rules()
         # Traffic between pfSense and macvlan containers remains pure L2
         # (bridge-nf-call-iptables=0); it never passes through this zone.
         # Actual filtering for this segment is therefore entirely delegated to pfSense.
-        if [[ "${FWD_INIT}" == "true" || ! -e "${FWD_STATE_FILE}" ]]; then
+        if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
             init_zone "${zone}"    
         fi
         log_debug "[Firewalld] Assigning ${br} -> ${zone}"
@@ -100,7 +100,6 @@ create_pfSense_fwall_rules()
             log_debug "[Firewalld] SSH access allowed on ${zone} zone"
         fi
     done
-    touch "${FWD_STATE_FILE}"
     log_info "[Firewalld] pfSense firewall profile applied ✅"
 }
 
@@ -140,7 +139,7 @@ create_recovery_fwall_rules()
         --zone="$zone" \
         --add-service=dhcpv6-client || true
     log_info "[Firewalld] Recovery firewall generated"
-    rm -f "${FWD_STATE_FILE}"
+    rm -f "${NET_STATE_FILE}"
 }
 
 # -----------------------------------------------------------------------------
@@ -259,7 +258,7 @@ generate_profile()
 
     backup_current_firewalld
     {
-        if [[ "${FWD_INIT}" == "true" || ! -e "${FWD_STATE_FILE}" ]]; then
+        if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
             reset_firewalld    
         fi
         log_info "[Firewalld] Generating ${profile} firewalld profile"

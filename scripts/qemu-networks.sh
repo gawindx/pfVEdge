@@ -33,9 +33,11 @@ nm_backup_transaction
 # ============================================================
 # NetworkManager preparation
 # ============================================================
-
-log_info "[Network] Reset NetworkManager"
-nm_reset
+if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
+    rm -f ${NET_STATE_FILE}
+    log_info "[Network] Reset NetworkManager"
+    nm_reset
+fi
 
 # ============================================================
 # Bridges
@@ -106,3 +108,4 @@ log_info "[Network] Network preparation completed ✅"
 # ============================================================
 
 touch /run/pfVEdge/network.ready
+touch "${NET_STATE_FILE}"

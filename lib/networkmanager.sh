@@ -206,7 +206,6 @@ nm_restore_transaction()
 nm_reset()
 {
     log_warn "[NM] Resetting NetworkManager"
-    nm_backup_transaction
     systemctl stop NetworkManager
     rm -f "${NM_CONNECTION_DIR}"/*
     rm -f /var/lib/NetworkManager/NetworkManager.state

@@ -111,6 +111,10 @@ set_defaults()
     BRIDGES_NETWORKS=$(trim "${BRIDGES_NETWORKS:-}")
     BRIDGES_MANAGE_FIREWALL=$(trim "${BRIDGES_MANAGE_FIREWALL:-true}")
 
+    # Network (NM & FWD)
+    NET_INIT="$(trim "${NET_INIT:-false}")"
+    NET_STATE_FILE="${BACKUP_DIR}/network.initialised"
+
     # NetworkManager
     NM_AUTO_MIGRATE_IFACE=$(trim "${NM_AUTO_MIGRATE_IFACE:-false}")
     NM_BACKUP_DIR="${BACKUP_DIR}/nmcli"
@@ -126,8 +130,6 @@ set_defaults()
     FWD_BACKUP_DIR="${BACKUP_DIR}/firewalld"
     FWD_CFG_DIR="/etc/firewalld"
     FWD_TMP_DIR="/run/pfVEdge-firewalld"
-    FWD_INIT="$(trim "${FWD_INIT:-false}")"
-    FWD_STATE_FILE="${FWD_BACKUP_DIR}/firewalld.initialised"
     FWD_GW_OFFSET="${FWD_GW_OFFSET:-1}"
 
     # Taps    

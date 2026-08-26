@@ -239,7 +239,7 @@ check_attachments() {
 # interfaces are created per-container at runtime and disappear when
 # the container stops, so their absence here is normal, not an error.
 check_podman_iface() {
-    local bridge="$1" 
+    local bridge="$1"
     local driver
     local parent
 

@@ -1,6 +1,6 @@
 # pfVEdge
 
-**v0.1**: first released version ; No real-world testing has been performed; only tests in a virtualized environment have been conducted. **Use at your own risk.**
+**v0.2**: Functional version, tested in a real-world environment. The project is still in its early stages, so **use at your own risk.**
 
 Any feedback is welcome.
 

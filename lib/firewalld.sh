@@ -80,7 +80,7 @@ create_pfSense_fwall_rules()
         else
             log_debug "[Firewalld] NET_STATE_FILE exists"
         fi
-        if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
+        if [[ "${INIT_NETWORK}" == "true" ]]; then
             log_debug "[Firewalld] Initializing zone ${zone}"
             init_zone "${zone}"    
         fi
@@ -151,7 +151,7 @@ create_recovery_fwall_rules()
         --zone="$zone" \
         --add-service=dhcpv6-client || true
     log_info "[Firewalld] Recovery firewall generated"
-    rm -f "${NET_STATE_FILE}"
+    [[ -e "${NET_STATE_FILE}" ]] && rm -f ${NET_STATE_FILE}
 }
 
 # -----------------------------------------------------------------------------
@@ -270,7 +270,7 @@ generate_profile()
 
     backup_current_firewalld
     {
-        if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
+        if [[ "${INIT_NETWORK}" == "true" ]]; then
             reset_firewalld    
         fi
         log_info "[Firewalld] Generating ${profile} firewalld profile"

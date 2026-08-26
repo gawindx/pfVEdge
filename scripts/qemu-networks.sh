@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+INIT_NETWORK=false
+
 # ============================================================
 # Initialization
 # ============================================================
@@ -33,8 +35,15 @@ nm_backup_transaction
 # ============================================================
 # NetworkManager preparation
 # ============================================================
+
 if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
-    rm -f ${NET_STATE_FILE}
+    log_debug "[NETWORK] NET_INT set to true or ${NET_STATE_FILE} doesn't exists"
+    log_debug "[NETWORK] Network will be fully initialised"
+    [[ -e "${NET_STATE_FILE}" ]] && rm -f ${NET_STATE_FILE}
+    INIT_NETWORK=true
+fi
+
+if [[ "${INIT_NETWORK}" == "true" ]]; then
     log_info "[Network] Reset NetworkManager"
     nm_reset
 fi

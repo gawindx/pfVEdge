@@ -10,23 +10,39 @@ CONTAINER_DIR="$PROJECT_DIR/container"
 IMAGE_PREFIX="pfvedge"
 CURRENT_TAG="${IMAGE_PREFIX}:current"
 BACKUP_FILE="/run/pfVEdge.previous"
+LOG_FILE="$PROJECT_DIR/upgrade.log"
+
+# ==========================================
+# LOGGING
+# ==========================================
+
+> "$LOG_FILE"
+
+logger() {
+    local MESSAGE="$1"
+    local TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+    local LOG_LINE="[$TIMESTAMP] $MESSAGE"
+
+    # append to log file and display on console
+    echo "$LOG_LINE" | tee -a "$LOG_FILE"
+}
 
 # ==========================================
 # ROOT
 # ==========================================
 
 if [[ "$EUID" -ne 0 ]]; then
-    echo "[ERROR] Run as root"
+    logger "[ERROR] Run as root"
     exit 1
 fi
 
-echo "[INFO] Starting upgrade"
+logger "[INFO] Starting upgrade"
 
 # ==========================================
 # BUILD HASH
 # ==========================================
 
-echo "[INFO] Computing build hash"
+logger "[INFO] Computing build hash"
 
 IMAGE_HASH=$(
     find "$CONTAINER_DIR" \
@@ -40,14 +56,14 @@ IMAGE_HASH=$(
 
 BUILD_TAG="${IMAGE_PREFIX}:build-${IMAGE_HASH}"
 
-echo "[INFO] Build tag:"
-echo "       $BUILD_TAG"
+logger "[INFO] Build tag:"
+logger "       $BUILD_TAG"
 
 # ==========================================
 # SAVE CURRENT IMAGE
 # ==========================================
 
-echo "[INFO] Saving current image"
+logger "[INFO] Saving current image"
 
 if podman image exists "$CURRENT_TAG"
 then
@@ -55,9 +71,9 @@ then
         podman image inspect "$CURRENT_TAG" \
         --format '{{index .RepoTags 0}}'
     )
-    echo "$PREVIOUS_TAG" > "$BACKUP_FILE"
+    logger "$PREVIOUS_TAG" > "$BACKUP_FILE"
 else
-    echo "" > "$BACKUP_FILE"
+    logger "" > "$BACKUP_FILE"
 fi
 
 # ==========================================
@@ -66,36 +82,36 @@ fi
 
 if podman image exists "$BUILD_TAG"
 then
-    echo "[INFO] Existing build found"
-    echo "[INFO] No rebuild required"
+    logger "[INFO] Existing build found"
+    logger "[INFO] No rebuild required"
 else
-    echo "[INFO] Building new image"
-    podman build \
+    logger "[INFO] Building new image"
+    logger "$( podman build \
         -t "$BUILD_TAG" \
-        "$CONTAINER_DIR"
+        "$CONTAINER_DIR" )"
 fi
 
 # ==========================================
 # SWITCH CURRENT
 # ==========================================
 
-echo "[INFO] Updating current image"
+logger "[INFO] Updating current image"
 
-podman tag \
+logger "$( podman tag \
     "$BUILD_TAG" \
-    "$CURRENT_TAG"
+    "$CURRENT_TAG" )"
 
 # ==========================================
 # DEPLOY INFRA
 # ==========================================
 
-"$PROJECT_DIR/deploy.sh"
+logger "$( ${PROJECT_DIR}/deploy.sh )"
 
 # ==========================================
 # RESTART STACK
 # ==========================================
 
-echo "[INFO] Restarting pfSense stack"
+logger "[INFO] Restarting pfSense stack"
 
 systemctl restart pfVEdge.target || true
 
@@ -103,9 +119,9 @@ systemctl restart pfVEdge.target || true
 # VALIDATION
 # ==========================================
 
-echo "[INFO] Validating"
+logger "[INFO] Validating"
 
-./scripts/validate-full-stack.sh --mode full --timeout 180 --quiet
+logger "$( ./scripts/validate-full-stack.sh --mode full --timeout 180 --quiet )"
 rc=$?
 
 if (( rc >= 2 )); then
@@ -114,8 +130,8 @@ if (( rc >= 2 )); then
     # ==========================================
 
     echo
-    echo "[ERROR] Validation failed"
-    echo "[INFO] Rolling back"
+    logger "[ERROR] Validation failed"
+    logger "[INFO] Rolling back"
 
     if [[ -s "$BACKUP_FILE" ]]
     then
@@ -124,27 +140,27 @@ if (( rc >= 2 )); then
             "$PREVIOUS_TAG" \
             "$CURRENT_TAG"
         systemctl restart pfVEdge.target
-        echo "[INFO] Rollback completed"
+        logger "[INFO] Rollback completed"
     else
-        echo "[ERROR] No rollback image available"
+        logger "[ERROR] No rollback image available"
     fi
     exit 1
 elif (( rc == 1 )); then
-    echo "[WARN] Upgrade Finished with warnings - Check log"
+    logger "[WARN] Upgrade Finished with warnings - Check log"
 else
-    echo "[INFO]] Upgrade Ok"
+    logger "[INFO]] Upgrade Ok"
 fi
 
 echo
-echo "================================"
-echo " Upgrade successful"
-echo "================================"
-echo "[INFO] Cleaning old builds"
+logger "================================"
+logger " Upgrade successful"
+logger "================================"
+logger "[INFO] Cleaning old builds"
 
-podman images \
+logger "$( podman images \
     --format "{{.Repository}}:{{.Tag}}" \
 | grep "^${IMAGE_PREFIX}:build-" \
 | sort -r \
 | tail -n +4 \
-| xargs -r podman rmi || true
+| xargs -r podman rmi || true )"
 exit 0

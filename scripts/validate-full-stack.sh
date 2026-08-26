@@ -32,6 +32,22 @@ WITH_NAT_TEST=false
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOG_FILE="$PROJECT_DIR/validate-full-stack.log"
+
+# ==========================================
+# LOGGING
+# ==========================================
+
+> "$LOG_FILE"
+
+logger() {
+    local MESSAGE="$1"
+    local TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+    local LOG_LINE="[$TIMESTAMP] $MESSAGE"
+
+    # append to log file and display on console
+    $QUIET || echo "$LOG_LINE" | tee -a "$LOG_FILE" && tee -a "$LOG_FILE" <<< "$LOG_LINE" >/dev/null
+}
 
 usage() {
     cat <<EOF
@@ -76,31 +92,32 @@ ts() { date '+%F %T'; }
 
 ok() {
     OK_COUNT=$((OK_COUNT + 1))
-    $QUIET && return 0
-    printf "[%s] [OK]    %s\n" "$(ts)" "$*"
+    msg=$(printf "[%s] [OK]    %s\n" "$(ts)" "$*")
+    logger "$msg"
 }
 
 warn() {
     WARN_COUNT=$((WARN_COUNT + 1))
-    printf "[%s] [WARN]  %s\n" "$(ts)" "$*" >&2
+    msg=$(printf "[%s] [WARN]  %s\n" "$(ts)" "$*")
+    logger "$msg"
 }
 
 error() {
     ERR_COUNT=$((ERR_COUNT + 1))
-    printf "[%s] [ERROR] %s\n" "$(ts)" "$*" >&2
+    msg=$(printf "[%s] [ERROR] %s\n" "$(ts)" "$*")
+    logger "$msg"
 }
 
 info() {
-    $QUIET && return 0
-    printf "[%s] [INFO]  %s\n" "$(ts)" "$*"
+    msg=$(printf "[%s] [INFO]  %s\n" "$(ts)" "$*")
+    logger "$msg"
 }
 
 section() {
-    $QUIET && return 0
-    echo ""
-    echo "======================================"
-    echo " $*"
-    echo "======================================"
+    logger ""
+    logger "======================================"
+    logger " $*"
+    logger "======================================"
 }
 
 # Poll a command until it succeeds or timeout is reached.
@@ -554,16 +571,16 @@ main() {
     fi
 
     section "Summary"
-    echo "OK: $OK_COUNT   WARN: $WARN_COUNT   ERROR: $ERR_COUNT"
+    logger "OK: $OK_COUNT   WARN: $WARN_COUNT   ERROR: $ERR_COUNT"
 
     if (( ERR_COUNT > 0 )); then
-        echo "Validation FAILED ❌"
+        logger "Validation FAILED ❌"
         exit 2
     elif (( WARN_COUNT > 0 )); then
-        echo "Validation completed with warnings ⚠️"
+        logger "Validation completed with warnings ⚠️"
         exit 1
     else
-        echo "Validation complete ✅"
+        logger "Validation complete ✅"
         exit 0
     fi
 }

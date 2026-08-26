@@ -239,7 +239,9 @@ check_attachments() {
 # interfaces are created per-container at runtime and disappear when
 # the container stops, so their absence here is normal, not an error.
 check_podman_iface() {
-    local bridge="$1" driver parent
+    local bridge="$1" 
+    local driver
+    local parent
 
     if ! podman network exists "$bridge" 2>/dev/null; then
         error "podman network '$bridge' does not exist"
@@ -251,6 +253,7 @@ check_podman_iface() {
     [[ "$driver" == "bridge" ]] && ok "podman network '$bridge' uses the bridge driver" \
                                   || warn "podman network '$bridge' uses driver '${driver:-unknown}', expected bridge"
 
+    parent=$(podman network inspect "$bridge" --format '{{.NetworkInterface}}' 2>/dev/null || true)
     if [[ "$parent" == "$bridge" ]]; then
         ok "podman network '$bridge' is parented directly on $bridge"
     else

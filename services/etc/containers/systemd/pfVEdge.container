@@ -15,15 +15,29 @@ OnFailureJobMode=replace-irreversibly
 [Container]
 Image=localhost/pfvedge:current
 ContainerName=pfVEdge
+
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
+
+# VM resources (overridable)
+Environment=DISK_SIZE="10G"
+Environment=RAM_SIZE="4G"
+Environment=CPU_CORES="1"
+
+# Never change this
 Environment=NETWORK=N
 
-# give 60 seconds for pfSense vm to gracefully stop
+# give 60 seconds for pfVEdge vm to gracefully stop
 Environment=TIMEOUT=60
-Environment=QEMU_NET_MODEL=virtio-net-pci
+
+# Watchdog defaults value
+Environment=WDG_CHECK_INTERVAL=30
+Environment=WDG_START_DELAY=120
+Environment=WDG_MAX_FAIL=3
+Environment=WDG_SHUTDOWN_TIMEOUT=60
 
 # You can use this as alternative in case of problem
 # Environment=QEMU_NET_MODEL=e1000
+Environment=QEMU_NET_MODEL=virtio-net-pci
 
 # In case of more than 1 vCPU, you can use multiqueue for network (virtio-net-pci only) 
 Environment=QEMU_VIRTIO_NET_MQ=true
@@ -45,6 +59,7 @@ AddDevice=/dev/kvm
 Volume=/run/pfVEdge/network.env:/tmp/qemu-tap-pfSense.env:ro
 Volume=__PROJECT_DIR__/storage:/storage
 
+# Container healthcheck
 HealthCmd=/healthcheck/healthcheck.sh
 HealthInterval=60s
 HealthRetries=5
@@ -54,9 +69,10 @@ HealthTimeout=10s
 # Restart only on failure and wait 30sec between each
 Restart=on-failure
 RestartSec=30
-# give 120 seconds for qemu to gracefully stop
+# give 120 seconds for container to gracefully stop
 TimeoutStopSec=120
 RestartPreventExitStatus=10 20 30 40 50 60 70
+# Start only if network is ready
 ExecStartPre=/usr/bin/test -f /run/pfVEdge/network.ready
 
 [Install]

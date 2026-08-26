@@ -27,7 +27,7 @@ log()
 }
 
 #
-# Process QEMU vivant ?
+# QEMU Process alive ?
 #
 qemu_alive()
 {
@@ -36,9 +36,9 @@ qemu_alive()
 }
 
 #
-# Validation PID
+# PID Validation
 #
-# Evite de tuer un mauvais processus
+# Avoid killing bad process
 #
 validate_qemu_pid()
 {
@@ -53,7 +53,7 @@ validate_qemu_pid()
 }
 
 #
-# Commande QMP simple
+# Simple QMP Command
 #
 qmp_pwrdown_command()
 {
@@ -69,7 +69,7 @@ qmp_pwrdown_command()
 }
 
 #
-# Récupération état QMP
+# Get QMP state
 #
 qmp_status()
 {
@@ -84,14 +84,14 @@ qmp_status()
 }
 
 #
-# Vérification santé QEMU
+# Healthcheck QMP
 #
 check_qemu()
 {
     PID="$1"
 
     #
-    # Processus vivant
+    # Process alive?
     #
     if ! qemu_alive "$PID"
     then
@@ -119,7 +119,7 @@ check_qemu()
 }
 
 #
-# Arrêt propre pfSense
+# gracefull shutdown
 #
 graceful_shutdown()
 {
@@ -127,14 +127,14 @@ graceful_shutdown()
     log WARN "Requesting pfSense shutdown via ACPI"
 
     #
-    # Etat avant arrêt
+    # State before shutdown
     #
     STATUS=$(qmp_status || true)
     log INFO "Current QMP state:"
     echo "$STATUS" | logger -t "$WDG_LOG_TAG"
 
     #
-    # Envoi arrêt ACPI
+    # Send ACPI stop signal
     #
     if [ -S "$QMP" ]
     then
@@ -144,7 +144,7 @@ graceful_shutdown()
     fi
 
     #
-    # Attente arrêt propre
+    # Waiting clean shutdown
     #
     ELAPSED=0
     while qemu_alive "$PID"
@@ -153,13 +153,13 @@ graceful_shutdown()
         then
             break
         fi
-        sleep 5
+        sleep $WDG_QMP_TIMEOUT
         ELAPSED=$((ELAPSED+5))
         log INFO "Waiting QEMU shutdown ($ELAPSED/$WDG_SHUTDOWN_TIMEOUT)"
     done
 
     #
-    # Escalade
+    # Kill qemu if always alive
     #
     if qemu_alive "$PID"
     then
@@ -177,7 +177,7 @@ graceful_shutdown()
 }
 
 #
-# Boucle principale
+# Main loop
 #
 log INFO "Watchdog started"
 while true
@@ -186,7 +186,7 @@ do
     NOW=$(date +%s)
 
     #
-    # Attente démarrage
+    # Waiting start
     #
     if [ ! -f "$PIDFILE" ]
     then
@@ -202,7 +202,7 @@ do
     PID=$(cat "$PIDFILE")
 
     #
-    # PID valide ?
+    # Valid PID?
     #
     if ! validate_qemu_pid "$PID"
     then

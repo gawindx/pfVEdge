@@ -33,7 +33,7 @@ configure_firewall()
 init_zone()
 {
     local zone="$1"
-    
+
     if zone_exists "${zone}"; then
         log_debug "[Firewall] Zone ${zone} already exists"
         firewall-cmd \
@@ -70,19 +70,9 @@ create_pfSense_fwall_rules()
         # Traffic between pfSense and macvlan containers remains pure L2
         # (bridge-nf-call-iptables=0); it never passes through this zone.
         # Actual filtering for this segment is therefore entirely delegated to pfSense.
-        if [[ "${NET_INIT}" == "true" ]]; then
-            log_debug "[Firewalld] NET_INIT=true, resetting firewalld configuration"
-        else
-            log_debug "[Firewalld] NET_INIT=false, using existing"
-        fi
-        if [[ ! -e "${NET_STATE_FILE}" ]]; then
-            log_debug "[Firewalld] NET_STATE_FILE not found, creating it"
-        else
-            log_debug "[Firewalld] NET_STATE_FILE exists"
-        fi
         if [[ "${INIT_NETWORK}" == "true" ]]; then
             log_debug "[Firewalld] Initializing zone ${zone}"
-            init_zone "${zone}"    
+            init_zone "${zone}"
         fi
         log_debug "[Firewalld] Assigning ${br} -> ${zone}"
         run firewall-cmd \
@@ -90,6 +80,14 @@ create_pfSense_fwall_rules()
             --zone="${zone}" \
             --add-interface="${br}"
         log_debug "[Firewalld] OK, ${br} set to ${zone}"
+        if [[ "${BRIDGE_IFACE_TYPE[$br]}" == "eth" ]]; then
+            log_debug "[Firewalld] Assigning physical eth ${BRIDGE_IFACES[$br]} -> ${zone}"
+            run firewall-cmd \
+                --permanent \
+                --zone="${zone}" \
+                --add-interface="${BRIDGE_IFACES[$br]}"
+            log_debug "[Firewalld] OK, ${BRIDGE_IFACES[$br]} set to ${zone}"
+        fi
         # Security: Fedora must not expose services
         run firewall-cmd \
             --permanent \
@@ -207,7 +205,7 @@ reset_firewalld()
 }
 
 # -----------------------------------------------------------------------------
-# MAnage Profiles
+# Manage Profiles
 # -----------------------------------------------------------------------------
 
 save_profile()

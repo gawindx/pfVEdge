@@ -9,7 +9,8 @@ PIDFILE="/run/shm/qemu.pid"
 WDG_CHECK_INTERVAL=${WDG_CHECK_INTERVAL:-30}
 WDG_START_DELAY=${WDG_START_DELAY:-120}
 WDG_MAX_FAIL=${WDG_MAX_FAIL:-3}
-WDG_SHUTDOWN_TIMEOUT=${WDG_SHUTDOWN_TIMEOUT:-60}   
+WDG_SHUTDOWN_TIMEOUT=${WDG_SHUTDOWN_TIMEOUT:-60}
+WDG_QMP_TIMEOUT=${WDG_QMP_TIMEOUT:-10}
 WDG_LOG_TAG="pfVEdge-watchdog"
 FAIL_COUNT=0
 START_TIME=$(date +%s)
@@ -64,7 +65,7 @@ qmp_pwrdown_command()
         sleep 0.2
         printf '%s\n' \
         '{"execute":"system_powerdown"}'
-    } | timeout 5 nc -N -U "$QMP" >/dev/null 2>&1
+    } | timeout $WDG_QMP_TIMEOUT nc -N -U "$QMP" >/dev/null 2>&1
 }
 
 #
@@ -79,7 +80,7 @@ qmp_status()
         sleep 0.2
         printf '%s\n' \
         '{"execute":"query-status"}'
-    } | timeout 5 nc -N -U "$QMP" 2>/dev/null
+    } | timeout $WDG_QMP_TIMEOUT nc -N -U "$QMP" 2>/dev/null
 }
 
 #

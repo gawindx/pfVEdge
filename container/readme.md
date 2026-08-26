@@ -106,6 +106,7 @@ Started by `start.sh`, it runs **continuously inside the container**, independen
 | `WDG_START_DELAY`        | `120`   | Startup grace period before counting a boot failure (s)                 |
 | `WDG_MAX_FAIL`           | `3`     | Number of consecutive failures before forced shutdown                   |
 | `WDG_SHUTDOWN_TIMEOUT`   | `60`    | Time allowed for ACPI shutdown before escalating to SIGTERM/SIGKILL (s) |
+| `WDG_QMP_TIMEOUT`        | `10`    | Time allowed for QMP command execution                                  |
 
 ### 4.3 Why two mechanisms?
 

@@ -238,13 +238,15 @@ check_attachments() {
                 warn "$iface: NetworkManager connection '$conn_name' not active"
             fi
 
-            master=$(bridge -j link show 2>/dev/null | grep -A2 "\"ifname\":\"$iface\"" | grep -oP '(?<="master":")[^"]+' || true)
+            master=$(bridge link show 2>/dev/null |
+                grep -E "^[[:space:]]*[0-9]+: ${iface}:" |
+                sed -n 's/.* master \([^ ]*\).*/\1/p')
             if [[ -z "$master" ]]; then
                 # Fallback for systems without "bridge -j" JSON support
                 bridge link show master "$bridge" 2>/dev/null | grep -qw "$iface" && master="$bridge"
             fi
             [[ "$master" == "$bridge" ]] && ok "$iface kernel-attached to $bridge" \
-                                          || warn "$iface is not currently a slave of $bridge (found: '${master:-none}')"
+                || warn "$iface is not currently a slave of $bridge (found: '${master:-none}')"
         done
     done
 }

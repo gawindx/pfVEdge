@@ -129,7 +129,7 @@ if (( rc >= 2 )); then
     # ROLLBACK
     # ==========================================
 
-    echo
+    logger ""
     logger "[ERROR] Validation failed"
     logger "[INFO] Rolling back"
 
@@ -151,7 +151,7 @@ else
     logger "[INFO]] Upgrade Ok"
 fi
 
-echo
+logger ""
 logger "================================"
 logger " Upgrade successful"
 logger "================================"

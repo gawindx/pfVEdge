@@ -37,37 +37,37 @@ Offloads firewall management from a **Fedora** host to a **pfSense** VM, running
 ```
 pfVEdge/
 ├── config/
-│   ├── bridges.env            # Active configuration (see §4)
-│   └── bridges.env.example    # Annotated template
-├── container/                 # QEMU/pfSense image (see container/readme.md)
+│   ├── bridges.env                            # Active configuration (see §4)
+│   └── bridges.env.example                    # Annotated template
+├── container/                                 # pfVEdge container image (see container/readme.md)
 │   ├── Dockerfile
 │   └── src/
-│       ├── start.sh           # Injects TAPs into QEMU
-│       └── healthcheck/       # healthcheck.sh + watchdog.sh
-├── lib/                       # Bash library shared by all scripts
-│   ├── init.sh                # Common entry point (parsing, config, libs)
-│   ├── constants.sh           # Exit codes, constants
-│   ├── parser.sh              # Parses BRIDGES_NETWORKS
-│   ├── validation.sh          # Validates configuration and live network state
-│   ├── bridges.sh             # Creates/manages NetworkManager bridges
-│   ├── ports.sh                # Attaches interfaces (real/Podman) to bridges
-│   ├── taps.sh                 # Creates/validates TAPs, exports them to QEMU
-│   ├── networkmanager.sh       # Backup/restore of NetworkManager profiles
-│   ├── firewalld.sh            # Generates firewalld profiles (pfSense/recovery/user)
-│   ├── logging.sh / utils.sh   # Shared utilities
+│       ├── start.sh                           # Injects TAPs into QEMU
+│       └── healthcheck/                       # healthcheck.sh + watchdog.sh
+├── lib/                                       # Bash library shared by all scripts
+│   ├── init.sh                                # Common entry point (parsing, config, libs)
+│   ├── constants.sh                           # Exit codes, constants
+│   ├── parser.sh                              # Parses BRIDGES_NETWORKS
+│   ├── validation.sh                          # Validates configuration and live network state
+│   ├── bridges.sh                             # Creates/manages NetworkManager bridges
+│   ├── ports.sh                               # Attaches interfaces (real/Podman) to bridges
+│   ├── taps.sh                                # Creates/validates TAPs, exports them to QEMU
+│   ├── networkmanager.sh                      # Backup/restore of NetworkManager profiles
+│   ├── firewalld.sh                           # Generates firewalld profiles (pfSense/recovery/user)
+│   ├── logging.sh / utils.sh                  # Shared utilities
 ├── scripts/
-│   ├── qemu-networks.sh        # Prepares bridges + TAPs + firewalld before starting the VM
-│   ├── firewalld-profile.sh    # CLI: backup / apply <profile> / reset
-│   ├── restore-nmcli.sh        # Restores the original NetworkManager configuration
-│   └── validate-full-stack.sh  # Test full stack
+│   ├── qemu-networks.sh                       # Prepares bridges + TAPs + firewalld before starting the VM
+│   ├── firewalld-profile.sh                   # CLI: backup / apply <profile> / reset
+│   ├── restore-nmcli.sh                       # Restores the original NetworkManager configuration
+│   └── validate-full-stack.sh                 # Test full stack
 ├── services/etc/
 │   ├── containers/systemd/pfVEdge.container   # Podman quadlet (the pfSense VM)
 │   └── systemd/system/
 │       ├── pfVEdge.target                     # Global orchestrator
 │       ├── pfVEdge-bridges.service            # Prepares the host network
 │       └── pfVEdge-recovery.service           # Emergency firewalld fallback
-├── storage/                    # Persistent disk of the pfSense VM
-├── deploy.sh / undeploy.sh / upgrade.sh
+├── storage/                                   # Persistent disk of the pfSense VM
+├── deploy.sh / undeploy.sh / upgrade.sh       # Deployement scripts
 └── license.md
 ```
 

@@ -8,4 +8,4 @@ log_error() { printf "[%s] [ERROR] %s\n" "$(ts)" "$*" >&2; }
 log_debug() { 
     [[ "$LOG_LEVEL" != "DEBUG" ]] && return
     printf "[%s] [DEBUG] %s\n" "$(ts)" "$*"; 
-    }
+}

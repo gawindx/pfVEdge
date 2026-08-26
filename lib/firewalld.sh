@@ -89,7 +89,7 @@ create_pfSense_fwall_rules()
             --permanent \
             --zone="${zone}" \
             --add-interface="${br}"
-        log_debug "[Firewalld] OK, ${br} set to ${zone}" 
+        log_debug "[Firewalld] OK, ${br} set to ${zone}"
         # Security: Fedora must not expose services
         run firewall-cmd \
             --permanent \
@@ -99,7 +99,7 @@ create_pfSense_fwall_rules()
         if [ "${FWD_ALLOW_SSH_HOST}" = "true" ]; then
             # Detect SSH port
             ssh_port=$(get_ssh_port)
-            log_debug "[Firewalld] ssh allowed by user on port : ${ssh_port}/tcp" 
+            log_debug "[Firewalld] ssh allowed by user on port : ${ssh_port}/tcp"
             # SSH access
             run firewall-cmd \
                 --permanent \
@@ -137,7 +137,7 @@ create_recovery_fwall_rules()
     done
     # Detect SSH port
     ssh_port=$(get_ssh_port)
-    log_debug "[Firewalld] ssh allowed for recovery on port : ${ssh_port}/tcp" 
+    log_debug "[Firewalld] ssh allowed for recovery on port : ${ssh_port}/tcp"
     # SSH access
     run firewall-cmd \
         --permanent \

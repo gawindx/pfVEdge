@@ -176,7 +176,7 @@ validate_bridge()
             log_error "[Validate] Bridge not UP: $br"
             return 1
         fi
-        log_debug "[Validate] Bridge is UP: $br" 
+        log_debug "[Validate] Bridge is UP: $br"
     fi
 
     # ------------------------------------------------------------------------

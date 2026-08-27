@@ -13,6 +13,29 @@ fi
 source "$ENV_FILE"
 
 # ==========================================
+# BOOT IMAGE
+# ==========================================
+
+get_opnsense_image() {
+    local mirror="https://pkg.opnsense.org"
+    local img_url
+
+    img_url="${mirror}/releases/mirror/$(
+        curl -fsSL "${mirror}/opnsense/releases/mirror/" |
+        grep -oE 'OPNsense-[0-9.]+-vga-amd64\.img\.bz2' |
+        head -n1
+    )"
+    [[ "$img_url" != */ ]] || return 1
+    printf '%s\n' "$img_url"
+}
+
+if [[ "$PF_BOOT" == "opnsense" ]]; then
+    if result=$(get_opnsense_image); then
+        BOOT="$result"
+    fi
+fi
+
+# ==========================================
 # Configurable interface order
 # ==========================================
 

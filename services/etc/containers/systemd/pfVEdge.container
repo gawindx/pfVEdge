@@ -23,6 +23,9 @@ Environment=DISK_SIZE="10G"
 Environment=RAM_SIZE="4G"
 Environment=CPU_CORES="1"
 
+# By default, pfVEdge will download pfSense img but you can override this 
+# Environment=PF_BOOT=opnsense
+
 # Never change this
 Environment=NETWORK=N
 

@@ -16,7 +16,10 @@ OnFailureJobMode=replace-irreversibly
 Image=localhost/pfvedge:current
 ContainerName=pfVEdge
 
+# Default Environment File (Mandatory)
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
+# Optional Environment File for override default Env of Quadlet
+EnvironmentFile=-__PROJECT_DIR__/config/override.env
 
 # VM resources (overridable)
 Environment=DISK_SIZE="10G"

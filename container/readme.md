@@ -42,13 +42,17 @@ The image's built-in networking (`NETWORK`) is disabled: the host provides TAP i
 | Variable      | Default (Dockerfile)                                   | Role                                             |
 |---------------|--------------------------------------------------------|--------------------------------------------------|
 | `NETWORK`     | `N`                                                    | Disables the image's native network management,  |
-|               |                                                        |  required for this project                       |
-| `BOOT`        | pfSense-CE 2.7.2 memstick image (repo.ialab.dsu.edu)   | Boot image used on first installation            |
+|               |                                                        | required for this project.                       |
+| `BOOT`        | pfSense-CE 2.7.2 memstick image (repo.ialab.dsu.edu)   | Default's Boot image used on first installation  |
+| `PF_BOOT`     |                                                        | Forces the installation of another firewall      |
+|               |                                                        | instead of pfSense.                              |
 | `DISK_SIZE`   | `10G`                                                  | pfSense virtual disk size                        |
 | `RAM_SIZE`    | `4G`                                                   | RAM allocated to the VM                          |
 | `CPU_CORES`   | `1`                                                    | Number of vCPUs                                  |
 
-These values can be overridden in the quadlet file (`services/etc/containers/systemd/pfVEdge.container`), not in this Dockerfile. Other variables (`KVM`, `ARGUMENTS`, `VERSION`, `TIMEOUT`, …) remain those of the upstream `qemux/qemu` image — refer to its own documentation for their general usage.
+These values can be overridden in the optionnal config file (`config/override.conf`), not in this Dockerfile, nor quadlet file. Other variables (`KVM`, `ARGUMENTS`, `VERSION`, `TIMEOUT`, …) remain those of the upstream `qemux/qemu` image — refer to its own documentation for their general usage.
+
+As of now, pfVEdge allows you to install either the default `pfSense` or `OPNsense` by overriding the `PF_BOOT` variable with the value `opnsense`.
 
 ## 3. TAP interface injection (`src/start.sh`)
 
@@ -73,6 +77,7 @@ What it does:
 | `QEMU_VIRTIO_NET_MQ` | `true` / `false` (multiqueue, `virtio-net-pci` only) | `false` |
 
 `virtio-net-pci` is recommended for better performance; `e1000` remains the most compatible choice if pfSense has driver issues.
+This values can be overriden in the optionnal config file `config/override.conf`.
 
 ## 4. Dual supervision
 
@@ -108,6 +113,8 @@ Started by `start.sh`, it runs **continuously inside the container**, independen
 | `WDG_SHUTDOWN_TIMEOUT`   | `60`    | Time allowed for ACPI shutdown before escalating to SIGTERM/SIGKILL (s) |
 | `WDG_QMP_TIMEOUT`        | `10`    | Time allowed for QMP command execution                                  |
 
+This values can be overriden in the optionnal config file `config/override.conf`.
+
 ### 4.3 Why two mechanisms?
 
 - The **Podman healthcheck** is a simple status indicator, consumed by systemd/Podman and visible via `podman ps` / `systemctl status`.
@@ -117,7 +124,7 @@ It's this (repeated) container failure that then propagates to the host systemd 
 
 ## 5. Volumes, capabilities and networking
 
-Defined on the host side in the quadlet, restated here for reference:
+Defined on the host side in the quadlet or qemus base container, restated here for reference:
 
 | Item            | Value                                                        | Role                                        |
 |-----------------|--------------------------------------------------------------|---------------------------------------------|
@@ -129,9 +136,12 @@ Defined on the host side in the quadlet, restated here for reference:
 |                 |                                                              | container's netns                           |
 | `Network`       | `host`                                                       | **Required**: TAPs must live in the same    | 
 |                 |                                                              | net namespace as the host bridges           |
-| Port `8006`     | noVNC (upstream web viewer)                                  | Useful for initial pfSense install / visual |
+| `WEB_PORT`      | `8006`                                                       | Web noVNC (upstream web viewer)             |
+|                 |                                                              | Useful for initial pfSense install / visual |
 |                 |                                                              | troubleshooting; not published by default   |
-|                 |                                                              | (`Network=host`) |
+|                 |                                                              | (`Network=host`)                            |
+
+This values can be overriden in the optionnal config file `config/override.conf`.
 
 ## 6. Building and testing the image manually
 

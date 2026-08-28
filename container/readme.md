@@ -39,18 +39,24 @@ FROM docker.io/qemux/qemu:7.32
 
 The image's built-in networking (`NETWORK`) is disabled: the host provides TAP interfaces already attached to Linux bridges, outside of the upstream image's normal networking lifecycle.
 
-| Variable      | Default (Dockerfile)                                   | Role                                             |
+| Variable      | Default in Quadlet ( or Dockerfile)                    | Role                                             |
 |---------------|--------------------------------------------------------|--------------------------------------------------|
 | `NETWORK`     | `N`                                                    | Disables the image's native network management,  |
 |               |                                                        | required for this project.                       |
 | `BOOT`        | pfSense-CE 2.7.2 memstick image (repo.ialab.dsu.edu)   | Default's Boot image used on first installation  |
-| `PF_BOOT`     |                                                        | Forces the installation of another firewall      |
+
+These values cannot  be overridden in the optionnal config file (`config/override.env`).
+
+| Variable      | Default ( or defaults env file)                        | Role                                             |
+|---------------|--------------------------------------------------------|--------------------------------------------------|
+| `PF_BOOT`     | `pfsense`                                              | Forces the installation of pfsense or another    |
+|               |                                                        | firewall (pfsense|opnsense)                      |
 |               |                                                        | instead of pfSense.                              |
 | `DISK_SIZE`   | `10G`                                                  | pfSense virtual disk size                        |
 | `RAM_SIZE`    | `4G`                                                   | RAM allocated to the VM                          |
 | `CPU_CORES`   | `1`                                                    | Number of vCPUs                                  |
 
-These values can be overridden in the optionnal config file (`config/override.conf`), not in this Dockerfile, nor quadlet file. Other variables (`KVM`, `ARGUMENTS`, `VERSION`, `TIMEOUT`, …) remain those of the upstream `qemux/qemu` image — refer to its own documentation for their general usage.
+These values can be overridden in the optionnal config file (`config/override.env`), not in this Dockerfile, nor quadlet file. Other variables (`KVM`, `ARGUMENTS`, `VERSION`, `TIMEOUT`, …) remain those of the upstream `qemux/qemu` image — refer to its own documentation for their general usage.
 
 As of now, pfVEdge allows you to install either the default `pfSense` or `OPNsense` by overriding the `PF_BOOT` variable with the value `opnsense`.
 
@@ -77,7 +83,7 @@ What it does:
 | `QEMU_VIRTIO_NET_MQ` | `true` / `false` (multiqueue, `virtio-net-pci` only) | `false` |
 
 `virtio-net-pci` is recommended for better performance; `e1000` remains the most compatible choice if pfSense has driver issues.
-This values can be overriden in the optionnal config file `config/override.conf`.
+This values can be overriden in the optionnal config file `config/override.env`.
 
 ## 4. Dual supervision
 
@@ -113,7 +119,7 @@ Started by `start.sh`, it runs **continuously inside the container**, independen
 | `WDG_SHUTDOWN_TIMEOUT`   | `60`    | Time allowed for ACPI shutdown before escalating to SIGTERM/SIGKILL (s) |
 | `WDG_QMP_TIMEOUT`        | `10`    | Time allowed for QMP command execution                                  |
 
-This values can be overriden in the optionnal config file `config/override.conf`.
+This values can be overriden in the optionnal config file `config/override.env`.
 
 ### 4.3 Why two mechanisms?
 
@@ -141,7 +147,7 @@ Defined on the host side in the quadlet or qemus base container, restated here f
 |                 |                                                              | troubleshooting; not published by default   |
 |                 |                                                              | (`Network=host`)                            |
 
-This values can be overriden in the optionnal config file `config/override.conf`.
+This values can be overriden in the optionnal config file `config/override.env`.
 
 ## 6. Building and testing the image manually
 

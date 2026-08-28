@@ -16,40 +16,17 @@ OnFailureJobMode=replace-irreversibly
 Image=localhost/pfvedge:current
 ContainerName=pfVEdge
 
-# Default Environment File (Mandatory)
+# Default Container Environment File (Mandatory)
+EnvironmentFile=__PROJECT_DIR__/config/pfVEdge.defaults.env
+
+# Default Bridges Environment File (Mandatory)
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
-# Optional Environment File for override default Env of Quadlet
+
+# Optional Environment File for override default Env of Container
 EnvironmentFile=-__PROJECT_DIR__/config/override.env
 
-# VM resources (overridable)
-Environment=DISK_SIZE="10G"
-Environment=RAM_SIZE="4G"
-Environment=CPU_CORES="1"
-
-# By default, pfVEdge will download pfSense img but you can override this 
-# Environment=PF_BOOT=opnsense
-
-# Never change this
+# Never change or override this
 Environment=NETWORK=N
-
-# give 60 seconds for pfVEdge vm to gracefully stop
-Environment=TIMEOUT=60
-
-# Watchdog defaults value
-Environment=WDG_CHECK_INTERVAL=30
-Environment=WDG_START_DELAY=120
-Environment=WDG_MAX_FAIL=3
-Environment=WDG_SHUTDOWN_TIMEOUT=60
-
-# You can use this as alternative in case of problem
-# Environment=QEMU_NET_MODEL=e1000
-Environment=QEMU_NET_MODEL=virtio-net-pci
-
-# In case of more than 1 vCPU, you can use multiqueue for network (virtio-net-pci only) 
-Environment=QEMU_VIRTIO_NET_MQ=true
-
-# Uncomment if you cannot use KVM
-# Environment=KVM=N
 
 # Without qemu has no network and no internet for download BOOT_IMG
 # and need to be host because tap/bridge need same namespace in host and qemu
@@ -78,6 +55,7 @@ RestartSec=30
 # give 120 seconds for container to gracefully stop
 TimeoutStopSec=120
 RestartPreventExitStatus=10 20 30 40 50 60 70
+
 # Start only if network is ready
 ExecStartPre=/usr/bin/test -f /run/pfVEdge/network.ready
 

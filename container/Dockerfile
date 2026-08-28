@@ -22,6 +22,7 @@ ENV BOOT="https://repo.ialab.dsu.edu/pfsense/pfSense-CE-memstick-2.7.2-RELEASE-a
 ENV DISK_SIZE="10G"
 ENV RAM_SIZE="4G"
 ENV CPU_CORES="1"
+ENV PF_BOOT="pfsense"
 
 # ============================================
 # TAP INJECTION SUPPORT

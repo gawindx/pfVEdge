@@ -35,6 +35,13 @@ for bin in podman systemctl ip; do
 done
 
 # ==========================================
+# ENSURE THAT override.env exists
+# ==========================================
+OVERRIDE_ENV="$PROJECT_DIR/config/pfVEdge.override.env"
+
+[[ -f "$OVERRIDE_ENV" ]] || touch "$OVERRIDE_ENV"
+
+# ==========================================
 # INITIAL IMAGE BUILD
 # ==========================================
 

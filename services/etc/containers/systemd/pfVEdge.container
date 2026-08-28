@@ -23,7 +23,7 @@ EnvironmentFile=__PROJECT_DIR__/config/pfVEdge.defaults.env
 EnvironmentFile=__PROJECT_DIR__/config/bridges.env
 
 # Optional Environment File for override default Env of Container
-EnvironmentFile=-__PROJECT_DIR__/config/override.env
+EnvironmentFile=__PROJECT_DIR__/config/pfVEdge.override.env
 
 # Never change or override this
 Environment=NETWORK=N

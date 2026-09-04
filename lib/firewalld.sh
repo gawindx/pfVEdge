@@ -268,12 +268,12 @@ generate_profile()
 
     backup_current_firewalld
     {
-        if [[ "${INIT_NETWORK}" == "true" ]]; then
-            reset_firewalld    
-        fi
         log_info "[Firewalld] Generating ${profile} firewalld profile"
         case "$profile" in
             pfSense)
+                if [[ "${INIT_NETWORK}" == "true" ]]; then
+                    reset_firewalld    
+                fi
                 create_pfSense_fwall_rules
                 ;;
             recovery)

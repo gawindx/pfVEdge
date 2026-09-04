@@ -21,7 +21,7 @@ get_opnsense_image() {
     local img_url
 
     img_url="${mirror}/releases/mirror/$(
-        curl -fsSL "${mirror}/opnsense/releases/mirror/" |
+        curl -fsSL "${mirror}/releases/mirror/" |
         grep -oE 'OPNsense-[0-9.]+-vga-amd64\.img\.bz2' |
         head -n1
     )"

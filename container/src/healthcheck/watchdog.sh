@@ -22,8 +22,9 @@ log()
 {
     LEVEL="$1"
     MESSAGE="$2"
+    WDG_DATE=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$LEVEL] $MESSAGE"
-    logger -t "$WDG_LOG_TAG" "[$LEVEL] $MESSAGE" 2>/dev/null || true
+    logger -t "$WDG_LOG_TAG" "[$LEVEL] [$WDG_DATE] $MESSAGE" 2>/dev/null || true
 }
 
 #

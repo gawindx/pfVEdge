@@ -78,11 +78,11 @@ init_zone()
     local zone="$1"
 
     if zone_exists "${zone}"; then
-        log_debug "[Firewall] Zone ${zone} already exists"
+        log_debug "[Firewalld] Zone ${zone} already exists"
         firewall-cmd \
             --permanent \
             --delete-zone="${zone}"
-        log_debug "[Firewall] Zone ${zone} has been deleted"
+        log_debug "[Firewalld] Zone ${zone} has been deleted"
     fi
     log_debug "[Firewalld] Creating ${zone} zone"
     firewall-cmd \

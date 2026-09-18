@@ -1,6 +1,49 @@
 #!/usr/bin/env bash
 
 # -----------------------------------------------------------------------------
+# Ensure Firewalld is running before continue
+# -----------------------------------------------------------------------------
+
+ensure_firewall() {
+    local max_attempts=3
+    local timeout=10
+    local attempt=1
+    local elapsed
+
+    while (( attempt <= max_attempts )); do
+        if systemctl is-active --quiet firewalld; then
+            return 0
+        fi
+
+        echo "[Firewalld] firewalld is not running, starting it (attempt ${attempt}/${max_attempts})..."
+
+        systemctl start firewalld
+
+        elapsed=0
+        while (( elapsed < timeout )); do
+            if systemctl is-active --quiet firewalld; then
+                echo "[Firewalld] firewalld is running."
+                return 0
+            fi
+
+            sleep 1
+            ((elapsed++))
+        done
+
+        echo "[Firewalld] firewalld failed to become active."
+
+        ((attempt++))
+
+        if (( attempt <= max_attempts )); then
+            sleep 2
+        fi
+    done
+
+    echo "[Firewalld] ERROR: firewalld failed to start after ${max_attempts} attempts." >&2
+    return 1
+}
+
+# -----------------------------------------------------------------------------
 # Entry : Launch Firewalld configuration
 # -----------------------------------------------------------------------------
 
@@ -266,21 +309,23 @@ generate_profile()
 {
     local profile="$1"
 
-    backup_current_firewalld
-    {
-        log_info "[Firewalld] Generating ${profile} firewalld profile"
-        case "$profile" in
-            pfSense)
-                if [[ "${INIT_NETWORK}" == "true" ]]; then
-                    reset_firewalld    
-                fi
-                create_pfSense_fwall_rules
-                ;;
-            recovery)
-                log_info "[Firewalld] Generating recovery firewalld profile"
-                create_recovery_fwall_rules
-                ;;
-        esac
-        firewall-cmd --reload
-    } || restore_current_firewalld
+    ensure_firewall && {
+        backup_current_firewalld
+        {
+            log_info "[Firewalld] Generating ${profile} firewalld profile"
+            case "$profile" in
+                pfSense)
+                    if [[ "${INIT_NETWORK}" == "true" ]]; then
+                        reset_firewalld    
+                    fi
+                    create_pfSense_fwall_rules
+                    ;;
+                recovery)
+                    log_info "[Firewalld] Generating recovery firewalld profile"
+                    create_recovery_fwall_rules
+                    ;;
+            esac
+            firewall-cmd --reload
+        } || restore_current_firewalld
+    } || return 1
 }

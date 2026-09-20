@@ -267,12 +267,11 @@ save_profile()
 apply_profile()
 {
     local profile="$1"
-    local source
 
     log_info "[Firewalld] Applying firewalld profile: ${profile}"
     case $profile in
         user)
-            source=$(profile_path "$profile")
+            local source=$(profile_path "$profile")
             if [[ ! -d "${source}" ]]; then
                 log_error "[Firewalld] Profile does not exist: ${profile}"
                 exit 1

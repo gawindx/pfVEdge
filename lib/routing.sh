@@ -119,28 +119,34 @@ configure_lan_route_table()
     # Podman networks
     # -------------------------------------------------------------------------
 
-    for pod_bridge in "${BRIDGE_NAMES[@]}"; do
-        case "${BRIDGE_FWROLE[$pod_bridge]}" in
-            POD-LAN|POD-DMZ)
+    for br in "${BRIDGE_NAMES[@]}"; do
+        case "${BRIDGE_IFACE_TYPE[$br]}" in
+            podman)
+                continue
+                log_debug \
+                    "[Routing] Table $table_id: $br is a Podman bridge, skipping"
                 ;;
             *)
-                continue
+                local fwrole="${BRIDGE_FWROLE[$br]}"
+                [[ "$fwrole" == "lan" || "$fwrole" == "dmz" ]] || continue
+                log_debug \
+                    "[Routing] Table $table_id: $br is a LAN or DMZ bridge. Configuring route to Podman networks"
                 ;;
         esac
-        if [[ -z "${BRIDGE_IPV4[$pod_bridge]}" ]]; then
+        if [[ -z "${BRIDGE_IPV4[$br]}" ]]; then
             log_debug \
-                "[Routing] Skipping Podman bridge '$pod_bridge': no IPv4 configured"
+                "[Routing] Skipping Podman bridge '$br': no IPv4 configured"
             continue
         fi
-        if [[ "${BRIDGE_IPV4[$pod_bridge]}" == "dhcp" ]]; then
+        if [[ "${BRIDGE_IPV4[$br]}" == "dhcp" ]]; then
             log_error \
-                "[Routing] Podman bridge '$pod_bridge' cannot use DHCP for routing"
+                "[Routing] Podman bridge '$br' cannot use DHCP for routing"
             return 1
         fi
         declare -A pod_info
-        get_bridge_network_info "$pod_bridge" pod_info || {
+        get_bridge_network_info "$br" pod_info || {
             log_error \
-                "[Routing] Unable to calculate network for Podman bridge '$pod_bridge'"
+                "[Routing] Unable to calculate network for Podman bridge '$br'"
             return 1
         }
         pod_network="${pod_info[network]}"
@@ -187,11 +193,13 @@ configure_lan_rule()
 
     # ip rule does not provide the same replace operation as ip route.
     # Delete our deterministic rule first if it already exists.
+    log_debug "[Routing] Verifying if rule with priority $priority already exists"
     if ip -4 rule show | grep -Eq \
         "^${priority}: .*from ${lan_network} .*lookup ${table_id}([[:space:]]|$)"; then
         run ip -4 rule del \
             priority "$priority"
     fi
+    log_debug "[Routing] Adding rule with priority $priority"
     run ip -4 rule add \
         priority "$priority" \
         from "$lan_network" \
@@ -245,7 +253,9 @@ configure_lan_policy_routing()
     # Remove only rules belonging to pfVEdge.
     cleanup_lan_rules
     for bridge in "${BRIDGE_NAMES[@]}"; do
+        log_debug "[Routing] Processing LAN bridge '$bridge'"
         [[ "${BRIDGE_FWROLE[$bridge]}" == "LAN" ]] || continue
+        log_debug "[Routing] Configuring LAN policy routing for bridge '$bridge'"
         if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
             log_error \
                 "[Routing] LAN bridge '$bridge' has no IPv4 configuration"
@@ -256,8 +266,10 @@ configure_lan_policy_routing()
                 "[Routing] LAN bridge '$bridge' cannot use DHCP for policy routing"
             return 1
         fi
+        log_debug "[Routing] '$bridge' is Eligible for LAN policy routing"
         unset lan_info
         declare -A lan_info
+
         get_bridge_network_info "$bridge" lan_info || {
             log_error \
                 "[Routing] Unable to calculate network information for LAN bridge '$bridge'"
@@ -266,6 +278,8 @@ configure_lan_policy_routing()
         lan_network="${lan_info[network]}"
         lan_cidr="${lan_info[cidr]}"
         gateway="${lan_info[gateway]}"
+
+        log_debug "[Routing] Calculated gateway for LAN bridge '$bridge': $gateway"
         if [[ -z "$gateway" ]]; then
             log_error \
                 "[Routing] Unable to calculate firewall gateway for LAN bridge '$bridge'"

@@ -94,7 +94,7 @@ load_application_libraries()
     source "$PROJECT_DIR/lib/taps.sh"
     source "$PROJECT_DIR/lib/networkmanager.sh"
     source "$PROJECT_DIR/lib/firewalld.sh"
-    source "${SCRIPT_DIR}/lib/routing.sh"
+    source "$PROJECT_DIR/lib/routing.sh"
 }
 
 # ============================================================

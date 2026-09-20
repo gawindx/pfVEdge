@@ -94,6 +94,7 @@ load_application_libraries()
     source "$PROJECT_DIR/lib/taps.sh"
     source "$PROJECT_DIR/lib/networkmanager.sh"
     source "$PROJECT_DIR/lib/firewalld.sh"
+    source "${SCRIPT_DIR}/lib/routing.sh"
 }
 
 # ============================================================
@@ -124,6 +125,22 @@ set_defaults()
     NM_CONNECTION_DIR="/etc/NetworkManager/system-connections"
     NM_FORCE_FACTORY_BACKUP="${NM_FORCE_FACTORY_BACKUP:-false}"
     NM_HASH_FILE="${NM_BACKUP_DIR}/current.sha256"
+
+    # Routes
+    # Routing tables reserved for pfVEdge.
+    #
+    # Each LAN bridge gets one deterministic routing table ID derived from
+    # the bridge name.
+    #
+    # Table IDs:
+    #   10000 - 10999
+    #
+    # Rule priorities:
+    #   20000 - 20999
+    #
+    ROUTE_TABLE_BASE=10000
+    ROUTE_TABLE_SIZE=1000
+    ROUTE_RULE_PRIORITY_BASE=20000
 
     # Firewalld
     FWD_ALLOW_SSH_HOST=$(trim "${FWD_ALLOW_SSH_HOST:-false}")

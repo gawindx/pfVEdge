@@ -62,4 +62,8 @@ create_or_validate_bridges() {
         ensure_bridge "$bridge" "${BRIDGE_IPV4[$bridge]}" "${BRIDGE_IFACE_TYPE[$bridge]}" "${BRIDGE_IP_GW[$bridge]}"
         ip link set "$bridge" up
     done
+    if ! configure_routing; then
+        log_error "[Routing] Routing configuration failed"
+    return 1
+fi
 }

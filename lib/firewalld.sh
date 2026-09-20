@@ -113,7 +113,7 @@ create_pfSense_fwall_rules()
         # Traffic between pfSense and macvlan containers remains pure L2
         # (bridge-nf-call-iptables=0); it never passes through this zone.
         # Actual filtering for this segment is therefore entirely delegated to pfSense.
-        if [[ "${INIT_NETWORK}" == "true" ]]; then
+        if [[ "${INIT_NETWORK}" == "true" ]] || ! zone_exists "${zone}"; then
             log_debug "[Firewalld] Initializing zone ${zone}"
             init_zone "${zone}"
         fi

@@ -107,6 +107,7 @@ set_defaults()
     BACKUP_DIR=$(trim "${BACKUP_DIR:-/var/lib/pfVEdge}")
     LOG_LEVEL=$(trim "${LOG_LEVEL:-INFO}")
     QEMU_NETWORK_ENV="${QEMU_NETWORK_ENV:-/run/pfVEdge/network.env}"
+    INIT_NETWORK="${INIT_NETWORK:-false}"
 
     # Bridges
     BRIDGES_NETWORKS=$(trim "${BRIDGES_NETWORKS:-}")

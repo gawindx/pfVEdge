@@ -253,8 +253,8 @@ configure_lan_policy_routing()
     # Remove only rules belonging to pfVEdge.
     cleanup_lan_rules
     for bridge in "${BRIDGE_NAMES[@]}"; do
-        log_debug "[Routing] Processing LAN bridge '$bridge'"
-        [[ "${BRIDGE_FWROLE[$bridge]}" == "LAN" ]] || continue
+        log_debug "[Routing] Processing bridge '$bridge'"
+        [[ "${BRIDGE_FWROLE[$bridge]}" == "lan" ]] || continue
         log_debug "[Routing] Configuring LAN policy routing for bridge '$bridge'"
         if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
             log_error \

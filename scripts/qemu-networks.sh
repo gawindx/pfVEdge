@@ -64,6 +64,11 @@ log_info "[Network] Verify if User's config exists"
 [[ ! -d "$(profile_path recovery)" ]] && \
     log_info "[Network] User's config missing, create it!"
 save_profile
+log_info "[Routing] Configuring routing"
+if ! configure_routing; then
+    log_error "[Routing] Routing configuration failed"
+    return 1
+fi
 log_info "[Network] Configuring Firewalld for pfSense"
 configure_firewall pfSense
 

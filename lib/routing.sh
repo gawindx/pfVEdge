@@ -294,10 +294,8 @@ configure_lan_policy_routing()
 
 configure_routing()
 {
-    log_info "[Routing] Configuring routing"
-
-    # The WAN default route is intentionally managed by NetworkManager through
-    # BRIDGE_IP_GW. LAN policy routing is managed here.
+    # The WAN default route is intentionally managed by NetworkManager
+    # LAN policy routing is managed here.
     configure_lan_policy_routing || return 1
     log_info "[Routing] Routing configuration completed"
     return 0

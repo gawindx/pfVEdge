@@ -40,7 +40,7 @@ get_bridge_network_info()
 {
     local bridge="$1"
     local -n result="$2"
-    declare -A info
+    declare -A eth_info
 
     if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
         return 1
@@ -48,10 +48,14 @@ get_bridge_network_info()
     if [[ "${BRIDGE_IPV4[$bridge]}" == "dhcp" ]]; then
         return 1
     fi
-    calc_network_info "${BRIDGE_IPV4[$bridge]}" info
-    result[cidr]="${info[cidr]}"
-    result[network]="${info[network]}"
-    result[gateway]="${info[gateway]}"
+    calc_network_info "$bridge" eth_info || {
+        log_error \
+            "[Routing] Unable to calculate network for bridge '$bridge'"
+        return 1
+    }
+    result[cidr]="${eth_info[cidr]}"
+    result[network]="${eth_info[network]}"
+    result[gateway]="${eth_info[gateway]}"
 }
 
 # -----------------------------------------------------------------------------
@@ -66,11 +70,11 @@ validate_route_table_ids()
     local other_table_id
 
     for bridge in "${BRIDGE_NAMES[@]}"; do
-        [[ "${BRIDGE_FWROLE[$bridge]}" == "LAN" ]] || continue
+        [[ "${BRIDGE_IFACE_TYPE[$bridge]}" == "podman" ]] || continue
+        [[ "${BRIDGE_FWROLE[$bridge]}" == "wan" ]] || continue
         table_id=$(get_route_table_id "$bridge")
         for other_bridge in "${BRIDGE_NAMES[@]}"; do
             [[ "$bridge" == "$other_bridge" ]] && continue
-            [[ "${BRIDGE_FWROLE[$other_bridge]}" == "LAN" ]] || continue
             other_table_id=$(get_route_table_id "$other_bridge")
             if [[ "$table_id" == "$other_table_id" ]]; then
                 log_error \
@@ -79,6 +83,7 @@ validate_route_table_ids()
             fi
         done
     done
+
     return 0
 }
 
@@ -93,15 +98,16 @@ configure_lan_route_table()
     local lan_network="$3"
     local gateway="$4"
 
-    local pod_bridge
-    local pod_network
-    local pod_cidr
+    local other_bridge
+    local other_network
+    local other_cidr
+    local fwrole
 
     log_debug \
-        "[Routing] Configuring table $table_id for LAN bridge '$bridge'"
+        "[Routing] Configuring table $table_id for bridge '$bridge'"
 
     # -------------------------------------------------------------------------
-    # Connected LAN network
+    # Connected local network
     #
     # This route is required so that the firewall gateway itself is reachable
     # from this routing table.
@@ -116,59 +122,98 @@ configure_lan_route_table()
         table "$table_id"
 
     # -------------------------------------------------------------------------
-    # Podman networks
+    # Other firewall-managed networks
+    #
+    # LAN and DMZ networks must always be reached through the firewall.
+    # The current bridge is already directly connected, so it is skipped.
+    #
+    # Podman bridges have no IP configured on Fedora, but their network
+    # information is still defined in the general bridge configuration.
+    # They therefore need a route through the firewall from this table.
+    #
     # -------------------------------------------------------------------------
 
-    for br in "${BRIDGE_NAMES[@]}"; do
-        case "${BRIDGE_IFACE_TYPE[$br]}" in
-            podman)
-                continue
-                log_debug \
-                    "[Routing] Table $table_id: $br is a Podman bridge, skipping"
-                ;;
-            *)
-                local fwrole="${BRIDGE_FWROLE[$br]}"
-                [[ "$fwrole" == "lan" || "$fwrole" == "dmz" ]] || continue
-                log_debug \
-                    "[Routing] Table $table_id: $br is a LAN or DMZ bridge. Configuring route to Podman networks"
-                ;;
-        esac
-        if [[ -z "${BRIDGE_IPV4[$br]}" ]]; then
+    for other_bridge in "${BRIDGE_NAMES[@]}"; do
+        [[ "$other_bridge" == "$bridge" ]] && continue
+
+        [[ "${BRIDGE_IFACE_TYPE[$other_bridge]}" == "podman" ]] && {
+            if [[ -z "${BRIDGE_IPV4[$other_bridge]:-}" ]]; then
+                log_error \
+                    "[Routing] Podman bridge '$other_bridge' has no IPv4 network configured"
+                return 1
+            fi
+
+            if [[ "${BRIDGE_IPV4[$other_bridge]}" == "dhcp" ]]; then
+                log_error \
+                    "[Routing] Podman bridge '$other_bridge' cannot use DHCP for routing"
+                return 1
+            fi
+
+            declare -A pod_info
+            calc_network_info "$other_bridge" pod_info || {
+                log_error \
+                    "[Routing] Unable to calculate network for Podman bridge '$other_bridge'"
+                return 1
+            }
+
+            other_network="${pod_info[network]}"
+            other_cidr="${pod_info[cidr]}"
+
             log_debug \
-                "[Routing] Skipping Podman bridge '$br': no IPv4 configured"
-            continue
-        fi
-        if [[ "${BRIDGE_IPV4[$br]}" == "dhcp" ]]; then
-            log_error \
-                "[Routing] Podman bridge '$br' cannot use DHCP for routing"
-            return 1
-        fi
-        declare -A pod_info
-        get_bridge_network_info "$br" pod_info || {
-            log_error \
-                "[Routing] Unable to calculate network for Podman bridge '$br'"
-            return 1
+                "[Routing] Table $table_id: $other_network/$other_cidr via $gateway dev $bridge"
+
+            run ip -4 route replace \
+                "$other_network/$other_cidr" \
+                via "$gateway" \
+                dev "$bridge" \
+                table "$table_id"
+        } || {
+            fwrole="${BRIDGE_FWROLE[$other_bridge]}"
+            [[ "$fwrole" == "lan" || "$fwrole" == "dmz" ]] || continue
+
+            if [[ -z "${BRIDGE_IPV4[$other_bridge]:-}" ]]; then
+                log_debug \
+                    "[Routing] Skipping bridge '$other_bridge': no IPv4 network configured"
+                continue
+            fi
+
+            if [[ "${BRIDGE_IPV4[$other_bridge]}" == "dhcp" ]]; then
+                log_error \
+                    "[Routing] Bridge '$other_bridge' cannot use DHCP for policy routing"
+                return 1
+            fi
+
+            declare -A other_info
+            calc_network_info "$other_bridge" other_info || {
+                log_error \
+                    "[Routing] Unable to calculate network for bridge '$other_bridge'"
+                return 1
+            }
+
+            other_network="${other_info[network]}"
+            other_cidr="${other_info[cidr]}"
+
+            log_debug \
+                "[Routing] Table $table_id: $other_network/$other_cidr via $gateway dev $bridge"
+
+            run ip -4 route replace \
+                "$other_network/$other_cidr" \
+                via "$gateway" \
+                dev "$bridge" \
+                table "$table_id"
         }
-        pod_network="${pod_info[network]}"
-        pod_cidr="${pod_info[cidr]}"
-        log_debug \
-            "[Routing] Table $table_id: $pod_network/$pod_cidr via $gateway dev $bridge"
-        run ip -4 route replace \
-            "$pod_network/$pod_cidr" \
-            via "$gateway" \
-            dev "$bridge" \
-            table "$table_id"
     done
 
     # -------------------------------------------------------------------------
     # Default route
     #
-    # Traffic originating from this LAN must never fall back to the main
+    # Traffic originating from this LAN/DMZ must never fall back to the main
     # routing table and therefore bypass pfVEdge.
     # -------------------------------------------------------------------------
 
     log_debug \
         "[Routing] Table $table_id: default via $gateway dev $bridge"
+
     run ip -4 route replace \
         default \
         via "$gateway" \

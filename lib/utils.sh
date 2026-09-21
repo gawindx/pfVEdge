@@ -102,7 +102,10 @@ int_to_ip() {
 }
 
 calc_network_info() {
-  local input="$1"
+  local bridge="$1"
+  local input="${BRIDGE_IPV4["$bridge"]}"
+  local explicit_gateway="${BRIDGE_IP_GW[$bridge]}"
+
   declare -n result=$2  # référence
 
   local ip=${input%/*}
@@ -116,7 +119,9 @@ calc_network_info() {
   result[cidr]=$cidr
   result[network]=$(int_to_ip "$net")
 
-  if [ "$cidr" -le 30 ]; then
+  if [[ -n "$explicit_gateway" ]]; then
+        result[gateway]="$explicit_gateway"
+  elif [ "$cidr" -le 30 ]; then
     result[gateway]=$(int_to_ip $(( net + ${FWD_GW_OFFSET} )))
   else
     result[gateway]=""

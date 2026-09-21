@@ -74,7 +74,7 @@ create_podman_iface() {
     local subnet gateway
 
     log_debug "[Attach Ports] Create podman bridge network '$bridge' (parent=$bridge)"
-    calc_network_info "$ipv4" netinfo
+    calc_network_info "$bridge" netinfo
     log_debug "[Attach Ports] Create network with subnet '${netinfo[network]}/${netinfo[cidr]}' and gateway '${netinfo[gateway]}'"
     [[  -z "${netinfo[network]}" ]] || {
         subnet="--subnet ${netinfo[network]}/${netinfo[cidr]}"
@@ -122,19 +122,18 @@ attach_interface() {
 # ============================================================
 
 attach_bridge_ports() {
-    local bridge iface iface_type ipv4
+    local bridge iface iface_type
 
     log_info "[Attach Ports] Manage Bridges"
     for bridge in "${BRIDGE_NAMES[@]}"; do
         log_debug "[Attach Ports] Manage '$bridge'"
         iface_type="${BRIDGE_IFACE_TYPE[$bridge]}"
-        ipv4="${BRIDGE_IPV4[$bridge]}"
         IFS=',' read -ra ifaces <<< "${BRIDGE_IFACES[$bridge]}"
         for iface in "${ifaces[@]}"; do
             log_debug "[Attach Ports] Attach '$iface' to '$bridge' (type='$iface_type')"
             if [[ "$iface_type" == "podman" ]]; then 
                 log_debug "[Attach Ports] Create podman bridge network (no bridge-slave needed)"
-                create_podman_iface "$bridge" "$iface" "$ipv4"
+                create_podman_iface "$bridge" "$iface"
                 continue
             fi
             [[ -z "$iface" ]] && continue

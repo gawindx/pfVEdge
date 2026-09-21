@@ -91,7 +91,7 @@ validate_route_table_ids()
 # Configure one LAN routing table
 # -----------------------------------------------------------------------------
 
-configure_lan_route_table()
+configure_bridge_route_table()
 {
     local bridge="$1"
     local table_id="$2"
@@ -334,7 +334,7 @@ configure_lan_policy_routing()
         priority=$(get_route_rule_priority "$table_id")
         log_info \
             "[Routing] LAN '$bridge': $lan_network/$lan_cidr -> firewall $gateway, table $table_id, rule $priority"
-        configure_lan_route_table \
+        configure_bridge_route_table \
             "$bridge" \
             "$table_id" \
             "$lan_network/$lan_cidr" \

@@ -108,6 +108,12 @@ calc_network_info() {
 
   declare -n result=$2  # référence
 
+  if [[ -z "$input" || "$input" == "dhcp" ]]; then
+    log_error \
+        "[Routing] Bridge '$bridge' has no static IPv4 network information"
+    return 1
+  fi
+
   local ip=${input%/*}
   local cidr=${input#*/}
 

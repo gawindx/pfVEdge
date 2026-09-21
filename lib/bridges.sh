@@ -19,15 +19,15 @@ configure_bridge_ip() {
     local ipv4gw="$4"
 
     log_debug "[Bridges] Configure Bridge '$bridge' with address '$ipv4' and Type '$iface_type'"
-    if [[ -z "$ipv4" ]]; then
+    if [[ "$iface_type" == "podman" ]]; then
+        log_debug "[Bridges] Configure Bridge '$bridge' with no IP for podman"
+        run nmcli connection modify "$bridge" ipv4.method disabled ipv6.method disabled
+    elif [[ -z "$ipv4" ]]; then
         log_debug "[Bridges] Configure Bridge '$bridge' with no IP"
         run nmcli connection modify "$bridge" ipv4.method disabled ipv6.method disabled
     elif [[ "$ipv4" == "dhcp" ]]; then
         log_debug "[Bridges] Configure Bridge '$bridge' with DHCP"
         run nmcli connection modify "$bridge" ipv4.method auto ipv6.method disabled
-    elif [[ "$iface_type" == "podman" ]]; then
-        log_debug "[Bridges] Configure Bridge '$bridge' with no IP for podman"
-        run nmcli connection modify "$bridge" ipv4.method disabled ipv6.method disabled
     else
         log_debug "[Bridges] Configure Bridge '$bridge' with manual IP '$ipv4'"
         run nmcli connection modify "$bridge" ipv4.method manual ipv4.addresses "$ipv4" ipv6.method disabled

@@ -70,8 +70,10 @@ validate_route_table_ids()
     local other_table_id
 
     for bridge in "${BRIDGE_NAMES[@]}"; do
-        [[ "${BRIDGE_IFACE_TYPE[$bridge]}" == "podman" ]] || continue
-        [[ "${BRIDGE_FWROLE[$bridge]}" == "wan" ]] || continue
+        local iface_type="${BRIDGE_IFACE_TYPE[$bridge]}"
+        local fwrole="${BRIDGE_FWROLE[$bridge]}"
+
+        [[ "${iface_type}" == "podman" || "${fwrole}" == "wan" ]] || continue
         table_id=$(get_route_table_id "$bridge")
         for other_bridge in "${BRIDGE_NAMES[@]}"; do
             [[ "$bridge" == "$other_bridge" ]] && continue
@@ -83,7 +85,6 @@ validate_route_table_ids()
             fi
         done
     done
-
     return 0
 }
 

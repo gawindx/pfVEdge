@@ -69,19 +69,18 @@ handle_nm_migration() {
 create_podman_iface() {
     local bridge="$1"
     local iface="$2"
-    local ipv4="$3"
     declare -A netinfo
     local subnet gateway
 
     log_debug "[Attach Ports] Create podman bridge network '$bridge' (parent=$bridge)"
-    calc_network_info "$bridge" netinfo
-    log_debug "[Attach Ports] Create network with subnet '${netinfo[network]}/${netinfo[cidr]}' and gateway '${netinfo[gateway]}'"
-    [[  -z "${netinfo[network]}" ]] || {
-        subnet="--subnet ${netinfo[network]}/${netinfo[cidr]}"
+    calc_network_info "$bridge" pod_info || return 1
+    log_debug "[Attach Ports] Create network with subnet '${pod_info[network]}/${pod_info[cidr]}' and gateway '${pod_info[gateway]}'"
+    [[  -z "${pod_info[network]}" ]] || {
+        subnet="--subnet ${pod_info[network]}/${pod_info[cidr]}"
     }
-    [[  -z "${netinfo[gateway]}" ]] || {
-        gateway="--gateway ${netinfo[gateway]}"
-        log_warn "[Attach Ports] Gateway '${netinfo[gateway]}' must be configured on pfSense's own '$bridge' interface, not on the host"
+    [[  -z "${pod_info[gateway]}" ]] || {
+        gateway="--gateway ${pod_info[gateway]}"
+        log_warn "[Attach Ports] Gateway '${pod_info[gateway]}' must be configured on pfVEdge's own '$bridge' interface, not on the host"
     }
     log_debug "[Attach Ports] Create podman bridge network '$iface' attached to '$bridge' with subnet '$subnet' and gateway '$gateway'"
     run podman network exists "${bridge}" && return

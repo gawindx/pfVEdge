@@ -28,7 +28,10 @@ parse_networks() {
             exit "$E_VALIDATION"
         fi
         seen[$bridge]=1
-        [[ -n "$iface_type" ]] && validate_iface_type "$iface_type"
+        [[ -n "$iface_type" ]] && validate_iface_type "$iface_type" || {
+            log_error "[Parser] Invalid bridge configuration for $bridge (empty iface_type)"
+            exit "$E_VALIDATION"
+        }
         if [[ -n "$ipv4" ]]; then
             IFS=',' read -ra arr <<< "$ipv4"
             clean=()
@@ -45,8 +48,16 @@ parse_networks() {
             else
                 ipv4gw=""
             fi
+        else
+            [[ "$iface_type" == "podman"]] && {
+                log_error "[Parser] Podman bridge '$bridge' must have a static IP (not empty)"
+                exit "$E_VALIDATION"
+            }
         fi
-        [[ -n "$ifaces" ]] && validate_interfaces "$ifaces"
+        [[ -n "$ifaces" ]] && validate_interfaces "$ifaces" || {
+            log_error "[Parser] Invalid bridge configuration for $bridge (no interfaces specified)"
+            exit "$E_VALIDATION"
+        }
         # Normalize VLAN
         if [[ -n "$vlans" ]]; then
             IFS=',' read -ra arr <<< "$vlans"
@@ -61,7 +72,10 @@ parse_networks() {
         fi
         if [[ -z "$fwrole" ]]; then
             fwrole="wan"
+        else
+            validate_fw_role "$fwrole"
         fi
+
         BRIDGE_NAMES+=("$(trim "$bridge")")
         BRIDGE_IFACE_TYPE["$bridge"]=$(trim "$iface_type")
         BRIDGE_IFACES["$bridge"]=$(trim "$ifaces")

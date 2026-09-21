@@ -41,12 +41,20 @@ validate_iface_type() {
 # ============================================================
 
 validate_ipv4() {
-    log_debug "[Validate] Receive '$1' as IPV4"
-    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || {
-        [[ "$1" == "dhcp" ]] || {
-            log_error "[Validate] Invalid IPv4: '$1'"
+    local ipv4="$1"
+    local iface_type="$2"
+
+    log_debug "[Validate] Receive '$ipv4' as IPV4 and '$iiface_type' as iface_type"
+    [[ "$ipv4" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || {
+        if [[ "$iface_type" == "podman" && ("$ipv4" == "dhcp" || -z "$ipv4") ]]; then
+            log_error "[Parser] Podman bridge '$bridge' must only have a static IP"
+            exit "$E_VALIDATION"
+        fi
+        [[ "$ipv4" == "dhcp" ]] || {
+            log_error "[Validate] Invalid IPv4: '$ipv4'"
             exit "$E_VALIDATION"
         }
+
     }
 }
 
@@ -115,6 +123,22 @@ validate_vlans() {
         log_debug "[Validate] VLAN '$v' Validated"
         seen[$v]=1
     done
+}
+
+# ============================================================================
+# Validate FireWall roles
+# ============================================================================
+
+validate_fw_role() {
+    log_debug "[Validate] Receive '$1' as firewall role"
+    case "$1" in
+        wan|lan|dmz)
+            ;;
+        *)
+            log_error "[Validate] Invalid firewall role: '$1'"
+            exit "$E_VALIDATION"
+            ;;
+    esac
 }
 
 # ============================================================================

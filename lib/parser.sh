@@ -49,7 +49,7 @@ parse_networks() {
                 ipv4gw=""
             fi
         else
-            if [[ "$iface_type" == "podman"]]; then
+            if [[ "$iface_type" == "podman" ]]; then
                 log_error "[Parser] Podman bridge '$bridge' must have a static IP (not empty)"
                 exit "$E_VALIDATION"
             fi

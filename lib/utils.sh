@@ -91,45 +91,59 @@ check_firewalld()
 }
 
 ip_to_int() {
-  local IFS="."
-  read -r a b c d <<< " $1"
-  echo "$(( (a<<24) + (b<<16) + (c<<8) + d ))"
+    local IFS="."
+    read -r a b c d <<< " $1"
+    echo "$(( ((a<<24) + (b<<16) + (c<<8) + d) ))"
 }
 
 int_to_ip() {
-  local ip="$1"
-  echo $(( (ip>>24)&255 )).$(( (ip>>16)&255 )).$(( (ip>>8)&255 )).$(( ip&255 ))
+    local ip="$1"
+    echo $(( (ip>>24)&255 )).$(( (ip>>16)&255 )).$(( (ip>>8)&255 )).$(( ip&255 ))
 }
 
 calc_network_info() {
-  local bridge="$1"
-  local input="${BRIDGE_IPV4["$bridge"]}"
-  local explicit_gateway="${BRIDGE_IP_GW[$bridge]}"
+    local bridge="$1"
+    local input="${BRIDGE_IPV4["$bridge"]}"
+    local explicit_gateway="${BRIDGE_IP_GW[$bridge]}"
 
-  declare -n result=$2  # référence
+    declare -n result=$2  # référence
 
-  if [[ -z "$input" || "$input" == "dhcp" ]]; then
-    log_error \
-        "[Routing] Bridge '$bridge' has no static IPv4 network information"
-    return 1
-  fi
+    log_debug \
+        "[Routing] Receive '$bridge', $input and $explicit_gateway for network calculation"
+    if [[ -z "$input" || "$input" == "dhcp" ]]; then
+        log_error \
+            "[Routing] Bridge '$bridge' has no static IPv4 network information"
+        return 1
+    fi
 
-  local ip="${input%/*}"
-  local cidr="${input#*/}"
+    local ip="${input%/*}"
+    local cidr="${input#*/}"
+    log_debug \
+        "[Routing] calculate network info for '$bridge' : $ip as ip and $cidr as cidr"
 
-  local ip_int="$(( ip_to_int "$ip" ))"
-  local mask="$(( (0xFFFFFFFF<<(32-cidr))&0xFFFFFFFF) ))"
+    local ip_int="$(( ip_to_int "$ip" ))"
+    local mask="$(( (0xFFFFFFFF<<(32-cidr))&0xFFFFFFFF) ))"
+    log_debug \
+        "[Routing] calculate network info for '$bridge' : $ip_int as ip and $mask as mask"
 
-  local net="$(( ($ip_int & $mask) ))"
+    local net="$(( ($ip_int & $mask) ))"
+    log_debug \
+        "[Routing] calculate network info for '$bridge' : $net as network"
 
-  result[cidr]="$cidr"
-  result[network]="$(( int_to_ip "$net" ))"
 
-  if [[ -n "$explicit_gateway" ]]; then
+    result[cidr]="$cidr"
+    result[network]="$(( int_to_ip "$net" ))"
+
+    if [[ -n "$explicit_gateway" ]]; then
         result[gateway]="$explicit_gateway"
-  elif [ "$cidr" -le 30 ]; then
-    result[gateway]=$(int_to_ip $(( net + ${FWD_GW_OFFSET} )))
-  else
-    result[gateway]=""
-  fi
+    elif [ "$cidr" -le 30 ]; then
+        result[gateway]=$(int_to_ip $(( net + ${FWD_GW_OFFSET} )))
+    else
+        result[gateway]=""
+    fi
+        log_debug \
+        "[Routing] calculate network info for '$bridge' : $gateway as gateway
+        ${result[gateway]} as result
+        ${result[network]} as network
+        ${result[cidr]} as cidr"
 }

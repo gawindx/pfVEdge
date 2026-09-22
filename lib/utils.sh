@@ -92,13 +92,13 @@ check_firewalld()
 
 ip_to_int() {
   local IFS="."
-  read -r a b c d <<< "$1"
+  read -r a b c d <<< " $1"
   echo "$(( (a<<24) + (b<<16) + (c<<8) + d ))"
 }
 
 int_to_ip() {
   local ip="$1"
-  echo "$(( (ip>>24)&255 )).$(( (ip>>16)&255 )).$(( (ip>>8)&255 )).$(( ip&255 ))"
+  echo $(( (ip>>24)&255 )).$(( (ip>>16)&255 )).$(( (ip>>8)&255 )).$(( ip&255 ))
 }
 
 calc_network_info() {
@@ -114,16 +114,16 @@ calc_network_info() {
     return 1
   fi
 
-  local ip=${input%/*}
-  local cidr=${input#*/}
+  local ip="${input%/*}"
+  local cidr="${input#*/}"
 
-  local ip_int=$(ip_to_int "$ip")
-  local mask=$(( 0xFFFFFFFF << (32-cidr) & 0xFFFFFFFF ))
+  local ip_int="$(( ip_to_int "$ip" ))"
+  local mask="$(( (0xFFFFFFFF<<(32-cidr))&0xFFFFFFFF) ))"
 
-  local net=$(( ip_int & mask ))
+  local net="$(( ($ip_int & $mask) ))"
 
-  result[cidr]=$cidr
-  result[network]=$(int_to_ip "$net")
+  result[cidr]="$cidr"
+  result[network]="$(( int_to_ip "$net" ))"
 
   if [[ -n "$explicit_gateway" ]]; then
         result[gateway]="$explicit_gateway"

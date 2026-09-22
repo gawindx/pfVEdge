@@ -44,7 +44,7 @@ validate_ipv4() {
     local ipv4="$1"
     local iface_type="$2"
 
-    log_debug "[Validate] Receive '$ipv4' as IPV4 and '$iiface_type' as iface_type"
+    log_debug "[Validate] Receive '$ipv4' as IPV4 and '$iface_type' as iface_type"
     [[ "$ipv4" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || {
         if [[ "$iface_type" == "podman" && ("$ipv4" == "dhcp" || -z "$ipv4") ]]; then
             log_error "[Parser] Podman bridge '$bridge' must only have a static IP"

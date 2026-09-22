@@ -69,7 +69,7 @@ handle_nm_migration() {
 create_podman_iface() {
     local bridge="$1"
     local iface="$2"
-    declare -A netinfo
+    declare -A pod_info
     local subnet gateway
 
     log_debug "[Attach Ports] Create podman bridge network '$bridge' (parent=$bridge)"

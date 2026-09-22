@@ -301,7 +301,7 @@ configure_lan_policy_routing()
     for bridge in "${BRIDGE_NAMES[@]}"; do
         log_debug "[Routing] Processing bridge '$bridge'"
         [[ "${BRIDGE_FWROLE[$bridge]}" == "lan" ]] || continue
-        log_debug "[Routing] Configuring LAN policy routing for bridge '$bridge'"
+        log_debug "[Routing] Configuring route policy for bridge '$bridge'"
         if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
             log_error \
                 "[Routing] LAN bridge '$bridge' has no IPv4 configuration"
@@ -309,10 +309,10 @@ configure_lan_policy_routing()
         fi
         if [[ "${BRIDGE_IPV4[$bridge]}" == "dhcp" ]]; then
             log_error \
-                "[Routing] LAN bridge '$bridge' cannot use DHCP for policy routing"
+                "[Routing] LAN bridge '$bridge' cannot use DHCP for route policy"
             return 1
         fi
-        log_debug "[Routing] '$bridge' is Eligible for LAN policy routing"
+        log_debug "[Routing] '$bridge' is Eligible for route policy"
         unset lan_info
         declare -A lan_info
 

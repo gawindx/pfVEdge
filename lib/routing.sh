@@ -293,7 +293,7 @@ configure_lan_policy_routing()
     local lan_cidr
     declare -A lan_info
 
-    log_info "[Routing] Configuring LAN policy routing"
+    log_info "[Routing] Configuring route policies"
     validate_route_table_ids || return 1
 
     # Remove only rules belonging to pfVEdge.

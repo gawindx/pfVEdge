@@ -92,7 +92,7 @@ check_firewalld()
 
 ip_to_int() {
     local IFS="."
-    read -r a b c d <<< " $1"
+    read -r a b c d <<< "$1"
     echo "$(( ((a<<24) + (b<<16) + (c<<8) + d) ))"
 }
 
@@ -129,7 +129,6 @@ calc_network_info() {
     local net="$(( ($ip_int & $mask) ))"
     log_debug \
         "[Routing] calculate network info for '$bridge' : $net as network"
-
 
     result[cidr]="$cidr"
     result[network]="$(( int_to_ip "$net" ))"

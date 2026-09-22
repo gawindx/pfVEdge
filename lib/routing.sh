@@ -304,12 +304,12 @@ configure_lan_policy_routing()
         log_debug "[Routing] Configuring route policy for bridge '$bridge'"
         if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
             log_error \
-                "[Routing] LAN bridge '$bridge' has no IPv4 configuration"
+                "[Routing] bridge '$bridge' has no IPv4 configuration"
             return 1
         fi
         if [[ "${BRIDGE_IPV4[$bridge]}" == "dhcp" ]]; then
             log_error \
-                "[Routing] LAN bridge '$bridge' cannot use DHCP for route policy"
+                "[Routing] bridge '$bridge' cannot use DHCP for route policy"
             return 1
         fi
         log_debug "[Routing] '$bridge' is Eligible for route policy"
@@ -318,17 +318,17 @@ configure_lan_policy_routing()
 
         get_bridge_network_info "$bridge" lan_info || {
             log_error \
-                "[Routing] Unable to calculate network information for LAN bridge '$bridge'"
+                "[Routing] Unable to calculate network information for bridge '$bridge'"
             return 1
         }
         lan_network="${lan_info[network]}"
         lan_cidr="${lan_info[cidr]}"
         gateway="${lan_info[gateway]}"
 
-        log_debug "[Routing] Calculated gateway for LAN bridge '$bridge': $gateway"
+        log_debug "[Routing] Calculated gateway for bridge '$bridge': $gateway"
         if [[ -z "$gateway" ]]; then
             log_error \
-                "[Routing] Unable to calculate firewall gateway for LAN bridge '$bridge'"
+                "[Routing] Unable to calculate firewall gateway for bridge '$bridge'"
             return 1
         fi
         table_id=$(get_route_table_id "$bridge")

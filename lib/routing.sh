@@ -300,7 +300,7 @@ configure_lan_policy_routing()
     cleanup_lan_rules
     for bridge in "${BRIDGE_NAMES[@]}"; do
         log_debug "[Routing] Processing bridge '$bridge'"
-        [[ "${BRIDGE_FWROLE[$bridge]}" == "lan" ]] || continue
+        [[ "${BRIDGE_FWROLE[$bridge]}" == "wan" || "${BRIDGE_IFACE_TYPE[$bridge]}" == "podman" ]] && continue
         log_debug "[Routing] Configuring route policy for bridge '$bridge'"
         if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
             log_error \

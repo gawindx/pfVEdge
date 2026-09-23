@@ -153,7 +153,122 @@ pfVEdge.target
 - **Resilience**: `StartLimitIntervalSec=300` / `StartLimitBurst=5` — if the container fails more than 5 times in 5 minutes, systemd stops restarting it and triggers `pfVEdge-recovery.service` (`OnFailure`, `OnFailureJobMode=replace-irreversibly`).
 - **`pfVEdge-recovery.service`** then applies the `recovery` firewalld profile: a **single zone** grouping all the project's bridges, `DROP` by default, with only the SSH port opened — the port is extracted dynamically from `/etc/ssh/sshd_config` (`get_ssh_port`, falling back to `22` if absent). The goal: keep administrative access to the server even if pfSense is completely down, without falling back to an open-by-default firewalld configuration.
 
-## 7. firewalld profiles
+## 7. Systemd Quadlets
+
+To use and bind a quadlet to the target, you must use specific parameters that allow your containers to start after `pfVEdge.target` and also follow its restarts.
+
+You will also find parameters to ensure the container restarts in the event of a failure (you will need to provide the command to check the container's status).
+
+Exemple of quadlet
+
+```
+[Unit]
+Description=Systemd Quadlet Example
+After=pfVEdge.service
+Requires=pfVEdge.service
+PartOf=pfVEdge.service
+PartOf=pfVEdge.target
+
+[Container]
+Image=registry/container/example:latest
+ContainerName=Container_Name
+
+Network=br-pod-dmz
+IP=1.2.3.4
+
+HealthCmd=put_your_healthcheck_command_here 
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=30s
+HealthOnFailure=kill
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=pfVEdge.target
+```
+
+## 8. automatic route policies
+
+To avoid asymmetric routing errors, every physical interface that has a valid IP address and is not assigned to the WAN is allocated a routing rule and routing table, enabling it to correctly route packets to pfVEdge. Without these rules, there is a risk of asymmetric routing and packet leakage via the host itself.
+
+The rule number is derived from the bridge name to avoid overwriting another bridge's routing table; the same applies to the rule index.
+The host remains autonomous, continues using the main routing table, and is therefore unaffected.
+
+Each rule contains the necessary routes to ensure that packets originating from the relevant bridge are correctly forwarded to the pfVEdge networks and the Internet, thereby preventing the bridge from bypassing the firewall via the host.
+
+However, this behavior can cause issues in certain cases. If you use a program that lacks settings to specify the interface to bind to, and it defaults to the first interface it finds, it might not bind to the correct one.
+This example is based on how Squeezelite operates.
+
+In my case, I use my homelab's audio output as a Squeezelite player.
+Unfortunately, Squeezelite was binding to the WAN address by default, with no option to specify which interface or IP to use.
+It is possible to create a specific routing table and rule based on UID detection.
+In my case, Squeezelite runs under a specific user account, and therefore has a fixed, specific UID.
+
+There are two scenarios:
+- The service is launched without 'User' and 'Group' restrictions. In this case, if you are on a recent system, you can edit the relevant service and 
+  add the following:
+
+```
+[Unit]
+Description=Mon Service Reseau Dynamique
+After=network.target
+After=pfVEdge.service
+Requires=pfVEdge.service
+PartsOf=pfVEdge.service
+PartOf=pfVEdge.target
+
+[Service]
+DynamicUser=yes
+
+Environment=RULE_IDX=5000
+
+ExecStartPre=+/bin/sh -c '/usr/bin/ip rule del pref $RULE_IDX 2>/dev/null || true'
+ExecStartPre=+/usr/bin/bash -c ' \
+    TABLE_IDX=$(( %U - 5588000 )); \
+    /usr/sbin/ip route replace listening_interface_ip/cidr dev interface_name table $TABLE_IDX; \
+    /usr/sbin/ip route replace other_subnet/cidr via gateway_of_interface dev interface_name table $TABLE_IDX; \
+    /usr/sbin/ip rule add pref $RULE_IDX uidrange %U-%U lookup $TABLE_IDX'
+
+ExecStopPost=+/usr/bin/bash -c ' \
+    TABLE_IDX=$(( %U - 58000 )); \
+    /usr/sbin/ip rule del pref $RULE_IDX 2>/dev/null || true; \
+    /usr/sbin/ip route flush table $TABLE_IDX 2>/dev/null || true'
+```
+- The service is already running with the 'User' and 'Group' parameters; you need to retrieve the user's UID via:
+
+```bash
+sudo id -u username
+```
+Keep it!
+
+Edit the relevant service, adapt the template to your configuration (UID, network, gateway, etc.) and add it.
+
+```
+[Unit]
+After=pfVEdge.service
+Requires=pfVEdge.service
+PartOf=pfVEdge.service
+PartOf=pfVEdge.target
+
+[Service]
+Environment=UID=uid_username
+Environment=RULE_IDX=5000
+ExecStartPre=+/bin/sh -c '/usr/bin/ip rule del pref $(( $RULE_IDX + $UID )) 2>/dev/null || true'
+ExecStartPre=+/usr/sbin/ip route replace listening_interface_ip/cidr dev interface_name table $UID
+ExecStartPre=+/usr/sbin/ip route replace other_subnet/cidr via gateway_of_interface dev interface_name table $UID
+ExecStartPre=+/usr/sbin/ip rule add pref $(( $RULE_IDX + $UID )) uidrange $UID-$UID lookup $UID
+
+ExecStopPost=+/usr/sbin/ip route flush table $TABLE_IDX
+```
+Unit directives are recommended because they ensure the route is correctly recreated after each startup of pfVEdge.service (which implies that the network may have been affected).
+
+
+
+## 9. firewalld profiles
 
 Three profiles, managed by `lib/firewalld.sh` / `scripts/firewalld-profile.sh`:
 
@@ -176,7 +291,7 @@ sudo ./scripts/firewalld-profile.sh reset
 
 Each profile application backs up the current firewalld configuration before making changes, and automatically restores it if generation fails.
 
-## 8. Logging and troubleshooting
+## 10. Logging and troubleshooting
 
 ```bash
 # Overall status
@@ -197,6 +312,7 @@ LOG_LEVEL=DEBUG
 
 For troubleshooting specific to the pfSense VM itself (healthcheck, watchdog, QEMU network injection), see the [container README](./container/readme.md).
 
-## 9. License
+
+## 11. License
 
 MIT — see [`license.md`](./license.md).

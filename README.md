@@ -54,6 +54,7 @@ pfVEdge/
 │   ├── taps.sh                                # Creates/validates TAPs, exports them to QEMU
 │   ├── networkmanager.sh                      # Backup/restore of NetworkManager profiles
 │   ├── firewalld.sh                           # Generates firewalld profiles (pfSense/recovery/user)
+│   ├── routing.sh                             # Generates routing policies for bridge on host (avoid asymetric routes)
 │   ├── logging.sh / utils.sh                  # Shared utilities
 ├── scripts/
 │   ├── qemu-networks.sh                       # Prepares bridges + TAPs + firewalld before starting the VM

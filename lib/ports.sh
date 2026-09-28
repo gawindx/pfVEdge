@@ -50,21 +50,21 @@ handle_nm_migration() {
 # ============================================================
 
 # DMZ / service networks are created in "bridge" mode, directly on top
-# of the host bridge that already carries pfSense's TAP for that segment
+# of the host bridge that already carries pfVEdge's TAP for that segment
 # (e.g. br-net-dmz). Containers attached to this network get their own
 # MAC/IP straight on that L2 segment, exactly as if they were plugged
-# into a physical switch port behind pfSense.
+# into a physical switch port behind pfVEdge.
 #
 # Practical consequence: the gateway IP (network+1, see calc_network_info)
-# must be configured INSIDE pfSense as that interface's own address —
+# must be configured INSIDE pfVEdge as that interface's own address —
 # it is no longer owned by any interface on the Fedora host.
 #
 # Trade-off to be aware of: with bridge, the Fedora host itself cannot
 # talk directly to containers on this network (bridge's well-known
 # host<->child limitation). That's consistent with this project's model
-# (all traffic to/from these containers should go through pfSense), but
+# (all traffic to/from these containers should go through pfVEdge), but
 # it does mean host-side monitoring/healthchecks can't reach them
-# directly — they'd need to go through pfSense too, or use a separate
+# directly — they'd need to go through pfVEdge too, or use a separate
 # management network.
 create_podman_iface() {
     local bridge="$1"

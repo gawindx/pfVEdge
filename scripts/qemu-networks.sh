@@ -69,8 +69,8 @@ if ! configure_routing; then
     log_error "[Routing] Routing configuration failed"
     return 1
 fi
-log_info "[Network] Configuring Firewalld for pfSense"
-configure_firewall pfSense
+log_info "[Network] Configuring Firewalld for pfVEdge"
+configure_firewall pfVEdge
 
 # ============================================================
 # Validate bridges

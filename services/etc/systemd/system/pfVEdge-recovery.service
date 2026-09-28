@@ -1,5 +1,5 @@
 [Unit]
-Description=pfSense emergency firewall recovery
+Description=pfVEdge emergency firewall recovery
 After=network-online.target
 
 [Service]

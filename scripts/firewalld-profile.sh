@@ -47,7 +47,7 @@ Usage:
       Apply firewalld profile
       Allowed:
         user
-        pfSense
+        pfVEdge
         recovery
   $0 reset
       reset firewalld from /usr/lib/firewalld

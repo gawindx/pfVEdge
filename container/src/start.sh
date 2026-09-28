@@ -5,7 +5,7 @@ log()   { echo "[pfVEdge][INFO] $*"; }
 warn()  { echo "[pfVEdge][WARN] $*" >&2; }
 error() { echo "[pfVEdge][ERROR] $*" >&2; }
 
-ENV_FILE="/tmp/qemu-tap-pfSense.env"
+ENV_FILE="/tmp/qemu-tap-pfVEdge.env"
 if [[ ! -f "$ENV_FILE" ]]; then
     error "Missing TAP env file inside container"
     exit 1

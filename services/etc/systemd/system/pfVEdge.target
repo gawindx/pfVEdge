@@ -1,5 +1,5 @@
 [Unit]
-Description=pfSense QEMU network stack
+Description=pfVEdge QEMU network stack
 Requires=pfVEdge-bridges.service
 Requires=pfVEdge.service
 After=pfVEdge-bridges.service

@@ -4,9 +4,9 @@
 
 Any feedback is welcome.
 
-Offloads firewall management from a **Fedora** host to a **pfSense** VM, running under QEMU inside a Podman container, with automated network wiring and a firewalld fallback in case of failure.
+Offloads firewall management from a **Fedora** host to a **pfVEdge** VM (pfSense or OpnSense depending on user's choice), running under QEMU inside a Podman container, with automated network wiring and a firewalld fallback in case of failure.
 
-`firewalld` is no longer used to filter traffic: once the project is deployed, its only job is to isolate the host bridges from each other (`DROP` by default) while pfSense takes over actual traffic filtering.
+`firewalld` is no longer used to filter traffic: once the project is deployed, its only job is to isolate the host bridges from each other (`DROP` by default) while pfVEdge takes over actual traffic filtering.
 
 ---
 
@@ -14,9 +14,9 @@ Offloads firewall management from a **Fedora** host to a **pfSense** VM, running
 
 1. On the host, **Linux bridges** (NetworkManager) are created from real interfaces (e.g. `ens160`, `ens192`) and/or virtual **Podman** networks (e.g. an internal DMZ for application containers).
 2. Each bridge gets a dedicated **TAP** interface.
-3. These TAPs are injected into a QEMU container (based on [`qemux/qemu`](https://github.com/qemus/qemu)) that boots a **pfSense** VM, which attaches one TAP per bridge = one network interface per bridge on the pfSense side (WAN, LAN/trunk, DMZ, ...).
-4. pfSense becomes the single filtering point between these networks. `firewalld`'s role on the host is reduced to isolating the bridges by default (`DROP`), while/until pfSense is up and running.
-5. Everything is orchestrated by a **systemd target**, with dual supervision of the VM (Podman healthcheck + internal container watchdog) and an automatic **fallback mode** if the pfSense container repeatedly fails.
+3. These TAPs are injected into a QEMU container (based on [`qemux/qemu`](https://github.com/qemus/qemu)) that boots a **pfVEdge** VM, which attaches one TAP per bridge = one network interface per bridge on the pfVEdge side (WAN, LAN/trunk, DMZ, ...).
+4. pfVEdge becomes the single filtering point between these networks. `firewalld`'s role on the host is reduced to isolating the bridges by default (`DROP`), while/until pfVEdge is up and running.
+5. Everything is orchestrated by a **systemd target**, with dual supervision of the VM (Podman healthcheck + internal container watchdog) and an automatic **fallback mode** if the pfVEdge container repeatedly fails.
 
 ```
                   Fedora Host
@@ -24,7 +24,7 @@ Offloads firewall management from a **Fedora** host to a **pfSense** VM, running
    │  ens160 ──┐                                                                 │
    │           ├─▶ br-wan   ──▶ tap-wan   ──┐                                   │
    │  ens192 ──┐                             │                                   │
-   │           ├─▶ br-trunk ──▶ tap-trunk ──┼──▶ Container│──▶ pfSense VM      |
+   │           ├─▶ br-trunk ──▶ tap-trunk ──┼──▶ Container│──▶ pfVEdge VM      |
    │  podman ──┐                             │      (QEMU)     WAN / LAN / DMZ   |
    │  network ─┴─▶ br-net-dmz ─▶ tap-net-dmz┘                                   │
    │                                                                             │
@@ -53,7 +53,7 @@ pfVEdge/
 │   ├── ports.sh                               # Attaches interfaces (real/Podman) to bridges
 │   ├── taps.sh                                # Creates/validates TAPs, exports them to QEMU
 │   ├── networkmanager.sh                      # Backup/restore of NetworkManager profiles
-│   ├── firewalld.sh                           # Generates firewalld profiles (pfSense/recovery/user)
+│   ├── firewalld.sh                           # Generates firewalld profiles (pfVEdge/recovery/user)
 │   ├── routing.sh                             # Generates routing policies for bridge on host (avoid asymetric routes)
 │   ├── logging.sh / utils.sh                  # Shared utilities
 ├── scripts/
@@ -62,12 +62,12 @@ pfVEdge/
 │   ├── restore-nmcli.sh                       # Restores the original NetworkManager configuration
 │   └── validate-full-stack.sh                 # Test full stack
 ├── services/etc/
-│   ├── containers/systemd/pfVEdge.container   # Podman quadlet (the pfSense VM)
+│   ├── containers/systemd/pfVEdge.container   # Podman quadlet (the pfVEdge VM)
 │   └── systemd/system/
 │       ├── pfVEdge.target                     # Global orchestrator
 │       ├── pfVEdge-bridges.service            # Prepares the host network
 │       └── pfVEdge-recovery.service           # Emergency firewalld fallback
-├── storage/                                   # Persistent disk of the pfSense VM
+├── storage/                                   # Persistent disk of the pfVEdge VM
 ├── deploy.sh / undeploy.sh / upgrade.sh       # Deployement scripts
 └── license.md
 ```
@@ -77,9 +77,9 @@ pfVEdge/
 - Fedora-Like Os with **NetworkManager** active (bridges are managed exclusively via `nmcli`);
 - **Podman** with quadlet support (`/etc/containers/systemd`);
 - **firewalld** installed (used only for zone isolation, not application-level filtering);
-- **KVM** acceleration available (`/dev/kvm`) for decent pfSense performance;
+- **KVM** acceleration available (`/dev/kvm`) for decent pfVEdge performance;
 - root privileges for deployment (`deploy.sh`, `undeploy.sh`, `upgrade.sh`);
-- a pfSense boot image (default defined in the [Dockerfile](./container/Dockerfile), overridable).
+- eventually, a pfSense or OpnSense boot image (default defined in the [Dockerfile](./container/Dockerfile), overridable).
 
 ## 4. Configuration (`config/bridges.env`)
 
@@ -95,7 +95,7 @@ bridge_name:type:interfaces[,interfaces]:ipv4:vlans[,vlans]:firewall-role
 | `type`          | `podman` to create a Podman network attached to the bridge, otherwise real interface(s)      |
 | `interfaces`    | Host interface(s) to attach (comma-separated list)                                           |
 | `ipv4`          | `cidr` (`10.0.0.1/24`), `dhcp`, or empty (bridge carries no address)                         |
-| `vlans`         | Declarative only (validated and stored, not created — VLANs are handled on the pfSense side) |
+| `vlans`         | Declarative only (validated and stored, not created — VLANs are handled on the pfVEdge side) |
 | `firewall-role` | `wan`, `lan` or `dmz` — determines the associated firewalld zone                             |
 
 Example (current project `config/bridges.env`):
@@ -144,15 +144,15 @@ sudo ./undeploy.sh     # Stops/disables the units, restores the "user" firewalld
 
 ```
 pfVEdge.target
-  ├── Requires: pfVEdge-bridges.service   (oneshot, prepares bridges + TAPs + pfSense firewalld profile)
-  └── Requires: pfVEdge.service           (generated by the quadlet, the pfSense VM under QEMU)
+  ├── Requires: pfVEdge-bridges.service   (oneshot, prepares bridges + TAPs + pfVEdge firewalld profile)
+  └── Requires: pfVEdge.service           (generated by the quadlet, the pfVEdge VM under QEMU)
                     └── OnFailure: pfVEdge-recovery.service
 ```
 
-- **`pfVEdge-bridges.service`** runs `scripts/qemu-networks.sh`: backs up the NetworkManager configuration (factory + transaction), resets NetworkManager, creates/validates the bridges, attaches real interfaces and/or Podman networks to them, applies MTU and `sysctl` hardening, backs up the user's firewalld profile if not already saved, generates the `pfSense` firewalld profile (one zone per bridge, `DROP` by default), creates and validates the TAPs, and finally writes `/run/pfVEdge/network.env` (list of TAPs) as well as the `/run/pfVEdge/network.ready` marker. If validation fails, the transaction NetworkManager configuration is automatically restored.
+- **`pfVEdge-bridges.service`** runs `scripts/qemu-networks.sh`: backs up the NetworkManager configuration (factory + transaction), resets NetworkManager, creates/validates the bridges, attaches real interfaces and/or Podman networks to them, applies MTU and `sysctl` hardening, backs up the user's firewalld profile if not already saved, generates the `pfVEdge` firewalld profile (one zone per bridge, `DROP` by default), creates and validates the TAPs, and finally writes `/run/pfVEdge/network.env` (list of TAPs) as well as the `/run/pfVEdge/network.ready` marker. If validation fails, the transaction NetworkManager configuration is automatically restored.
 - **The `pfVEdge` container** (quadlet) only starts once `network.ready` exists (`ExecStartPre`). It mounts the TAP file generated in the previous step, as well as the persistent `storage/` volume.
 - **Resilience**: `StartLimitIntervalSec=300` / `StartLimitBurst=5` — if the container fails more than 5 times in 5 minutes, systemd stops restarting it and triggers `pfVEdge-recovery.service` (`OnFailure`, `OnFailureJobMode=replace-irreversibly`).
-- **`pfVEdge-recovery.service`** then applies the `recovery` firewalld profile: a **single zone** grouping all the project's bridges, `DROP` by default, with only the SSH port opened — the port is extracted dynamically from `/etc/ssh/sshd_config` (`get_ssh_port`, falling back to `22` if absent). The goal: keep administrative access to the server even if pfSense is completely down, without falling back to an open-by-default firewalld configuration.
+- **`pfVEdge-recovery.service`** then applies the `recovery` firewalld profile: a **single zone** grouping all the project's bridges, `DROP` by default, with only the SSH port opened — the port is extracted dynamically from `/etc/ssh/sshd_config` (`get_ssh_port`, falling back to `22` if absent). The goal: keep administrative access to the server even if pfVEdge is completely down, without falling back to an open-by-default firewalld configuration.
 
 ## 7. Systemd Quadlets
 
@@ -279,7 +279,7 @@ Three profiles, managed by `lib/firewalld.sh` / `scripts/firewalld-profile.sh`:
 |            | restored by `undeploy.sh`                             | before the project was integrated              |
 | `pfSense`  | Normal operation                                      | One zone per bridge, `DROP` by default,        |
 |            |                                                       | optionally SSH if `FWD_ALLOW_SSH_HOST=true`    |
-| `recovery` | After repeated failure of the pfSense container       | A single zone grouping all bridges, `DROP` by  |
+| `recovery` | After repeated failure of the pfVEdge container       | A single zone grouping all bridges, `DROP` by  |
 |            |                                                       | default, only SSH open                         |
 
 ```bash
@@ -311,7 +311,7 @@ sudo firewall-cmd --get-active-zones
 LOG_LEVEL=DEBUG
 ```
 
-For troubleshooting specific to the pfSense VM itself (healthcheck, watchdog, QEMU network injection), see the [container README](./container/readme.md).
+For troubleshooting specific to the pfVEdge VM itself (healthcheck, watchdog, QEMU network injection), see the [container README](./container/readme.md).
 
 
 ## 11. License

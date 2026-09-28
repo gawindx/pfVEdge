@@ -10,12 +10,12 @@ set -uo pipefail
 #
 # Modes:
 #   network   → host network layer only (bridges, attachments, TAPs,
-#               firewalld "pfSense" profile). Safe to run immediately
+#               firewalld "pfVEdge" profile). Safe to run immediately
 #               after pfVEdge-bridges.service, VM not required.
 #   full      → network checks + container/VM checks, with a retry
-#               window since pfSense needs real boot time (default).
+#               window since pfVEdge needs real boot time (default).
 #   recovery  → validates the "recovery" firewalld fallback instead of
-#               the "pfSense" one (run this after a recovery trigger).
+#               the "pfVEdge" one (run this after a recovery trigger).
 #
 # Exit codes:
 #   0 → everything OK (warnings tolerated)
@@ -57,7 +57,7 @@ Usage: $(basename "$0") [options]
   --timeout SECONDS               Max wait for VM-dependent checks (default: 120)
   --interval SECONDS              Poll interval while waiting (default: 5)
   --with-nat-test                 Spin up a throwaway container on the DMZ
-                                   podman network to test NAT through pfSense
+                                   podman network to test NAT through pfVEdge
   --quiet                         Only print WARN/ERROR lines and the summary
   -h, --help                      This help
 EOF
@@ -308,11 +308,11 @@ check_taps() {
 }
 
 # =========================================================================
-# Section: firewalld — "pfSense" profile (one zone per bridge)
+# Section: firewalld — "pfVEdge" profile (one zone per bridge)
 # =========================================================================
 
-check_firewalld_pfSense() {
-    section "Host - Firewalld (pfSense profile)"
+check_firewalld_pfVEdge() {
+    section "Host - Firewalld (pfVEdge profile)"
 
     if ! command -v firewall-cmd &>/dev/null; then
         warn "firewalld not installed — skipping"
@@ -390,7 +390,7 @@ check_sysctl() {
     local ipf brnf
 
     ipf=$(sysctl -n net.ipv4.ip_forward 2>/dev/null || echo "1")
-    [[ "$ipf" == "0" ]] && ok "ip_forward disabled (routing job belongs to pfSense)" \
+    [[ "$ipf" == "0" ]] && ok "ip_forward disabled (routing job belongs to pfVEdge)" \
                          || error "ip_forward is ENABLED on the host"
 
     brnf=$(sysctl -n net.bridge.bridge-nf-call-iptables 2>/dev/null || echo "0")
@@ -437,7 +437,7 @@ check_container() {
     if $healthy; then
         ok "container health status: healthy (within ${TIMEOUT}s)"
     else
-        error "container health status did not reach 'healthy' within ${TIMEOUT}s (pfSense may still be booting, or is stuck)"
+        error "container health status did not reach 'healthy' within ${TIMEOUT}s (pfVEdge may still be booting, or is stuck)"
     fi
 }
 
@@ -445,7 +445,7 @@ check_container() {
 # Section: guest NIC attachment, via TAP carrier state
 #
 # Carrier == 1 means the TAP's peer (the virtio/e1000 NIC *inside* the
-# pfSense guest) is up and has a driver attached. This is a much more
+# pfVEdge guest) is up and has a driver attached. This is a much more
 # reliable signal than "ip link inside the container" (which — since the
 # container runs with Network=host — would just show the host's own
 # interfaces again, proving nothing about the guest itself).
@@ -474,9 +474,9 @@ check_guest_nics() {
         done
 
         if [[ "$carrier" == "1" ]]; then
-            ok "$tap: carrier up → pfSense has attached a NIC driver to $bridge"
+            ok "$tap: carrier up → pfVEdge has attached a NIC driver to $bridge"
         else
-            warn "$tap: no carrier after ${TIMEOUT}s → pfSense hasn't brought this interface up yet"
+            warn "$tap: no carrier after ${TIMEOUT}s → pfVEdge hasn't brought this interface up yet"
         fi
     done
 }
@@ -507,18 +507,18 @@ check_vlan_trunk() {
 }
 
 # =========================================================================
-# Section: optional real NAT test through pfSense, via the DMZ
+# Section: optional real NAT test through pfVEdge, via the DMZ
 #
 # Running from the host is not representative (Network=host means the
 # container shares the host's own netns and default route — pinging
-# "from the container" never actually crosses pfSense). Instead, spin up
+# "from the container" never actually crosses pfVEdge). Instead, spin up
 # a disposable container on the "br-net-dmz" podman network: any traffic
-# it sends has to go through pfSense's DMZ interface to reach the
-# internet, which is a genuine end-to-end test of pfSense's routing/NAT.
+# it sends has to go through pfVEdge's DMZ interface to reach the
+# internet, which is a genuine end-to-end test of pfVEdge's routing/NAT.
 # =========================================================================
 
 check_nat_via_dmz() {
-    section "Connectivity - NAT through pfSense (DMZ probe)"
+    section "Connectivity - NAT through pfVEdge (DMZ probe)"
 
     local dmz_bridge=""
     for bridge in "${BRIDGE_NAMES[@]}"; do
@@ -537,9 +537,9 @@ check_nat_via_dmz() {
     info "probing internet reachability via '$dmz_bridge' (disposable container)..."
     if podman run --rm --network "$dmz_bridge" docker.io/library/busybox:latest \
          sh -c 'ping -c 1 -W 3 8.8.8.8' &>/dev/null; then
-        ok "NAT via pfSense works (DMZ container reached 8.8.8.8 through pfSense)"
+        ok "NAT via pfVEdge works (DMZ container reached 8.8.8.8 through pfVEdge)"
     else
-        error "NAT via pfSense FAILED (DMZ container could not reach the internet through pfSense)"
+        error "NAT via pfVEdge FAILED (DMZ container could not reach the internet through pfVEdge)"
     fi
 }
 
@@ -554,7 +554,7 @@ main() {
         check_bridges
         check_attachments
         check_taps
-        check_firewalld_pfSense
+        check_firewalld_pfVEdge
         check_sysctl
     fi
 

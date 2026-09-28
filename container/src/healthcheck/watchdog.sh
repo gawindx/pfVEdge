@@ -125,7 +125,7 @@ check_qemu()
 graceful_shutdown()
 {
     PID="$1"
-    log WARN "Requesting pfSense shutdown via ACPI"
+    log WARN "Requesting pfVEdge shutdown via ACPI"
 
     #
     # State before shutdown

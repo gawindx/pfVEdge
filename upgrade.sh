@@ -111,7 +111,7 @@ logger "$( ${PROJECT_DIR}/deploy.sh )"
 # RESTART STACK
 # ==========================================
 
-logger "[INFO] Restarting pfSense stack"
+logger "[INFO] Restarting pfVEdge stack"
 
 systemctl restart pfVEdge.target || true
 

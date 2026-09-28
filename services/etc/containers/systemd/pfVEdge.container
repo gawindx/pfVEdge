@@ -1,5 +1,5 @@
 [Unit]
-Description=pfVEdge container with pfSense VM
+Description=pfVEdge container with pfVEdge VM
 Requires=pfVEdge-bridges.service
 After=pfVEdge-bridges.service
 Before=pfVEdge.target
@@ -39,7 +39,7 @@ AddDevice=/dev/net/tun
 # Comment if you cannot use KVM
 AddDevice=/dev/kvm
 
-Volume=/run/pfVEdge/network.env:/tmp/qemu-tap-pfSense.env:ro
+Volume=/run/pfVEdge/network.env:/tmp/qemu-tap-pfVEdge.env:ro
 Volume=__PROJECT_DIR__/storage:/storage
 
 # Container healthcheck

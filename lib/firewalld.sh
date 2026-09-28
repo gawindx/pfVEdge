@@ -49,15 +49,15 @@ ensure_firewall() {
 
 configure_firewall()
 {
-    local mode="${1:-pfSense}"
+    local mode="${1:-pfVEdge}"
 
     if ! check_firewalld; then
         log_warn "[Firewalld] firewalld not installed → skipping"
         return
     fi
     case "$mode" in
-        pfSense)
-            apply_profile pfSense
+        pfVEdge)
+            apply_profile pfVEdge
             ;;
         recovery)
             apply_profile recovery
@@ -98,21 +98,21 @@ zone_exists()
 }
 
 # -----------------------------------------------------------------------------
-# Create pfSense/recovery Zones
+# Create pfVEdge/recovery Zones
 # -----------------------------------------------------------------------------
 
-create_pfSense_fwall_rules()
+create_pfVEdge_fwall_rules()
 {
-    log_info "[Firewalld] Applying pfSense firewall profile"
+    log_info "[Firewalld] Applying pfVEdge firewall profile"
     for br in "${BRIDGE_NAMES[@]}"; do
         local zone="$br"
 
         log_info "[Firewalld] Configure bridge '$br' with zone '$zone'"
         # NOTE: For "podman"-type bridges (e.g., br-net-dmz), this DROP
         # zone protects only the host itself (it has no IP address on the bridge).
-        # Traffic between pfSense and macvlan containers remains pure L2
+        # Traffic between pfVEdge and macvlan containers remains pure L2
         # (bridge-nf-call-iptables=0); it never passes through this zone.
-        # Actual filtering for this segment is therefore entirely delegated to pfSense.
+        # Actual filtering for this segment is therefore entirely delegated to pfVEdge.
         if [[ "${INIT_NETWORK}" == "true" ]] || ! zone_exists "${zone}"; then
             log_debug "[Firewalld] Initializing zone ${zone}"
             init_zone "${zone}"
@@ -153,7 +153,7 @@ create_pfSense_fwall_rules()
             log_debug "[Firewalld] SSH access allowed on ${zone} zone"
         fi
     done
-    log_info "[Firewalld] pfSense firewall profile applied ✅"
+    log_info "[Firewalld] pfVEdge firewall profile applied ✅"
 }
 
 create_recovery_fwall_rules()
@@ -286,8 +286,8 @@ apply_profile()
             # Restore SELinux context if available
             selinux_rcon "${FWD_CFG_DIR}"
             ;;
-        pfSense)
-            generate_profile pfSense
+        pfVEdge)
+            generate_profile pfVEdge
             ;;
         recovery)
             generate_profile recovery
@@ -313,11 +313,11 @@ generate_profile()
         {
             log_info "[Firewalld] Generating ${profile} firewalld profile"
             case "$profile" in
-                pfSense)
+                pfVEdge)
                     if [[ "${INIT_NETWORK}" == "true" ]]; then
                         reset_firewalld    
                     fi
-                    create_pfSense_fwall_rules
+                    create_pfVEdge_fwall_rules
                     ;;
                 recovery)
                     log_info "[Firewalld] Generating recovery firewalld profile"

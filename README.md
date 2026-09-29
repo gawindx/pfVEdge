@@ -154,7 +154,13 @@ pfVEdge.target
 - **Resilience**: `StartLimitIntervalSec=300` / `StartLimitBurst=5` — if the container fails more than 5 times in 5 minutes, systemd stops restarting it and triggers `pfVEdge-recovery.service` (`OnFailure`, `OnFailureJobMode=replace-irreversibly`).
 - **`pfVEdge-recovery.service`** then applies the `recovery` firewalld profile: a **single zone** grouping all the project's bridges, `DROP` by default, with only the SSH port opened — the port is extracted dynamically from `/etc/ssh/sshd_config` (`get_ssh_port`, falling back to `22` if absent). The goal: keep administrative access to the server even if pfVEdge is completely down, without falling back to an open-by-default firewalld configuration.
 
-## 7. Systemd Quadlets
+## 7. Delayed Service Startup
+
+pfVEdge provides an optional systemd timer template to stagger the startup of services after the firewall becomes available.
+
+See [Delayed Service Startup](./delayed-start.md) for configuration and examples.
+
+## 8. Systemd Quadlets
 
 To use and bind a quadlet to the target, you must use specific parameters that allow your containers to start after `pfVEdge.target` and also follow its restarts.
 
@@ -165,10 +171,8 @@ Exemple of quadlet
 ```
 [Unit]
 Description=Systemd Quadlet Example
-After=pfVEdge.service
-Requires=pfVEdge.service
-PartOf=pfVEdge.service
-PartOf=pfVEdge.target
+After=pfVEdge.target
+BindsTo=pfVEdge.service
 
 [Container]
 Image=registry/container/example:latest
@@ -186,13 +190,14 @@ HealthOnFailure=kill
 
 [Service]
 Restart=always
-TimeoutStartSec=300
+RestartSec=10s
 
 [Install]
 WantedBy=pfVEdge.target
 ```
+For DelayedStart service, [Install] section must not be present.
 
-## 8. automatic route policies
+## 9. automatic route policies
 
 To avoid asymmetric routing errors, every physical interface that has a valid IP address and is not assigned to the WAN is allocated a routing rule and routing table, enabling it to correctly route packets to pfVEdge. Without these rules, there is a risk of asymmetric routing and packet leakage via the host itself.
 
@@ -269,7 +274,7 @@ Unit directives are recommended because they ensure the route is correctly recre
 
 
 
-## 9. firewalld profiles
+## 10. firewalld profiles
 
 Three profiles, managed by `lib/firewalld.sh` / `scripts/firewalld-profile.sh`:
 
@@ -292,7 +297,7 @@ sudo ./scripts/firewalld-profile.sh reset
 
 Each profile application backs up the current firewalld configuration before making changes, and automatically restores it if generation fails.
 
-## 10. Logging and troubleshooting
+## 11. Logging and troubleshooting
 
 ```bash
 # Overall status
@@ -314,6 +319,6 @@ LOG_LEVEL=DEBUG
 For troubleshooting specific to the pfVEdge VM itself (healthcheck, watchdog, QEMU network injection), see the [container README](./container/readme.md).
 
 
-## 11. License
+## 12. License
 
 MIT — see [`license.md`](./license.md).

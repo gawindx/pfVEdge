@@ -1,0 +1,14 @@
+[Unit]
+Description=Delayed start of %i
+Requires=pfVEdge.service
+After=pfVEdge.service
+PartOf=pfVEdge.service
+
+[Timer]
+OnActiveSec=45s
+RandomizedDelaySec=30s
+AccuracySec=5s
+Unit=%i.service
+
+[Install]
+WantedBy=pfVEdge.target

@@ -122,11 +122,11 @@ calc_network_info() {
         "[Routing] calculate network info for '$bridge' : $ip as ip and $cidr as cidr"
 
     local ip_int="$( ip_to_int "$ip" )"
-    local mask="$(( (0xFFFFFFFF<<(32-cidr))&0xFFFFFFFF) ))"
+    local mask="$(( (0xFFFFFFFF<<(32-cidr))&0xFFFFFFFF ))"
     log_debug \
         "[Routing] calculate network info for '$bridge' : $ip_int as ip and $mask as mask"
 
-    local net="$( ($ip_int & $mask) )"
+    local net="$(( $ip_int & $mask ))"
     log_debug \
         "[Routing] calculate network info for '$bridge' : $net as network"
 
@@ -141,7 +141,7 @@ calc_network_info() {
         result[gateway]=""
     fi
         log_debug \
-        "[Routing] calculate network info for '$bridge' : $gateway as gateway
+        "[Routing] calculate network info for '$bridge' :
         ${result[gateway]} as result
         ${result[network]} as network
         ${result[cidr]} as cidr"

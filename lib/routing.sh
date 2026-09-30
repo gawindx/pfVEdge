@@ -89,7 +89,100 @@ validate_route_table_ids()
 }
 
 # -----------------------------------------------------------------------------
-# Configure one LAN routing table
+# Append an item to a comma-separated list
+# -----------------------------------------------------------------------------
+
+append_csv()
+{
+    local -n list="$1"
+    local value="$2"
+
+    [[ -z "$value" ]] && return 0
+    list+=("$value")
+}
+
+# -----------------------------------------------------------------------------
+# Check whether a routing table belongs to pfVEdge
+# -----------------------------------------------------------------------------
+
+is_pfvedge_table()
+{
+    local table_id="$1"
+
+    [[ "$table_id" =~ ^[0-9]+$ ]] || return 1
+    (( table_id >= ROUTE_TABLE_BASE &&
+       table_id < ROUTE_TABLE_BASE + ROUTE_TABLE_SIZE ))
+}
+
+# -----------------------------------------------------------------------------
+# Remove pfVEdge routes from an existing NetworkManager profile
+#
+# Routes outside the pfVEdge reserved table range are preserved.
+# -----------------------------------------------------------------------------
+
+get_existing_nm_routes()
+{
+    local bridge="$1"
+    local raw_routes
+    local route
+    local table_id
+    local -n result="$2"
+    local -a routes=()
+
+    raw_routes=$(nmcli -g ipv4.routes connection show "$bridge" 2>/dev/null || true)
+    [[ -z "$raw_routes" || "$raw_routes" == "--" ]] && return 0
+    raw_routes=${raw_routes//$'\n'/,}
+    IFS=',' read -ra raw_routes <<< "$raw_routes"
+    for route in "${raw_routes[@]}"; do
+        route=$(trim "$route")
+        [[ -z "$route" ]] && continue
+        if [[ "$route" =~ table=([0-9]+) ]]; then
+            table_id="${BASH_REMATCH[1]}"
+            if is_pfvedge_table "$table_id"; then
+                continue
+            fi
+        fi
+        routes+=("$route")
+    done
+    result=("${routes[@]}")
+}
+
+# -----------------------------------------------------------------------------
+# Remove pfVEdge routing rules from an existing NetworkManager profile
+#
+# Rules outside the pfVEdge reserved priority range are preserved.
+# -----------------------------------------------------------------------------
+
+get_existing_nm_rules()
+{
+    local bridge="$1"
+    local raw_rules
+    local rule
+    local priority
+    local -n result="$2"
+    local -a rules=()
+
+    raw_rules=$(nmcli -g ipv4.routing-rules connection show "$bridge" 2>/dev/null || true)
+    [[ -z "$raw_rules" || "$raw_rules" == "--" ]] && return 0
+    raw_rules=${raw_rules//$'\n'/,}
+    IFS=',' read -ra raw_rules <<< "$raw_rules"
+    for rule in "${raw_rules[@]}"; do
+        rule=$(trim "$rule")
+        [[ -z "$rule" ]] && continue
+        if [[ "$rule" =~ priority[[:space:]]+([0-9]+) ]]; then
+            priority="${BASH_REMATCH[1]}"
+            if (( priority >= ROUTE_RULE_PRIORITY_BASE &&
+                  priority < ROUTE_RULE_PRIORITY_BASE + ROUTE_TABLE_SIZE )); then
+                continue
+            fi
+        fi
+        rules+=("$rule")
+    done
+    result=("${rules[@]}")
+}
+
+# -----------------------------------------------------------------------------
+# Configure one LAN routing table in NetworkManager
 # -----------------------------------------------------------------------------
 
 configure_bridge_route_table()
@@ -104,8 +197,20 @@ configure_bridge_route_table()
     local other_cidr
     local fwrole
 
+    local -a routes=()
+    local -a existing_routes=()
+
     log_debug \
-        "[Routing] Configuring table $table_id for bridge '$bridge'"
+        "[Routing] Configuring NetworkManager table $table_id for bridge '$bridge'"
+
+    # -------------------------------------------------------------------------
+    # Preserve non-pfVEdge routes already present in the profile.
+    # -------------------------------------------------------------------------
+
+    get_existing_nm_routes "$bridge" existing_routes
+    for route in "${existing_routes[@]}"; do
+        routes+=("$route")
+    done
 
     # -------------------------------------------------------------------------
     # Connected local network
@@ -116,11 +221,9 @@ configure_bridge_route_table()
 
     log_debug \
         "[Routing] Table $table_id: $lan_network dev $bridge"
-
-    run ip -4 route replace \
-        "$lan_network" \
-        dev "$bridge" \
-        table "$table_id"
+    routes+=(
+        "$lan_network 0.0.0.0 0 table=$table_id"
+    )
 
     # -------------------------------------------------------------------------
     # Other firewall-managed networks
@@ -131,78 +234,61 @@ configure_bridge_route_table()
     # Podman bridges have no IP configured on Fedora, but their network
     # information is still defined in the general bridge configuration.
     # They therefore need a route through the firewall from this table.
-    #
     # -------------------------------------------------------------------------
 
     for other_bridge in "${BRIDGE_NAMES[@]}"; do
         [[ "$other_bridge" == "$bridge" ]] && continue
-
-        [[ "${BRIDGE_IFACE_TYPE[$other_bridge]}" == "podman" ]] && {
+        if [[ "${BRIDGE_IFACE_TYPE[$other_bridge]}" == "podman" ]]; then
             if [[ -z "${BRIDGE_IPV4[$other_bridge]:-}" ]]; then
                 log_error \
                     "[Routing] Podman bridge '$other_bridge' has no IPv4 network configured"
                 return 1
             fi
-
             if [[ "${BRIDGE_IPV4[$other_bridge]}" == "dhcp" ]]; then
                 log_error \
                     "[Routing] Podman bridge '$other_bridge' cannot use DHCP for routing"
                 return 1
             fi
-
             declare -A pod_info
             calc_network_info "$other_bridge" pod_info || {
                 log_error \
                     "[Routing] Unable to calculate network for Podman bridge '$other_bridge'"
                 return 1
             }
-
             other_network="${pod_info[network]}"
             other_cidr="${pod_info[cidr]}"
-
             log_debug \
                 "[Routing] Table $table_id: $other_network/$other_cidr via $gateway dev $bridge"
-
-            run ip -4 route replace \
-                "$other_network/$other_cidr" \
-                via "$gateway" \
-                dev "$bridge" \
-                table "$table_id"
-        } || {
-            fwrole="${BRIDGE_FWROLE[$other_bridge]}"
-            [[ "$fwrole" == "lan" || "$fwrole" == "dmz" ]] || continue
-
-            if [[ -z "${BRIDGE_IPV4[$other_bridge]:-}" ]]; then
-                log_debug \
-                    "[Routing] Skipping bridge '$other_bridge': no IPv4 network configured"
-                continue
-            fi
-
-            if [[ "${BRIDGE_IPV4[$other_bridge]}" == "dhcp" ]]; then
-                log_error \
-                    "[Routing] Bridge '$other_bridge' cannot use DHCP for policy routing"
-                return 1
-            fi
-
-            declare -A other_info
-            calc_network_info "$other_bridge" other_info || {
-                log_error \
-                    "[Routing] Unable to calculate network for bridge '$other_bridge'"
-                return 1
-            }
-
-            other_network="${other_info[network]}"
-            other_cidr="${other_info[cidr]}"
-
+            routes+=(
+                "$other_network/$other_cidr $gateway 0 table=$table_id"
+            )
+            continue
+        fi
+        fwrole="${BRIDGE_FWROLE[$other_bridge]}"
+        [[ "$fwrole" == "lan" || "$fwrole" == "dmz" ]] || continue
+        if [[ -z "${BRIDGE_IPV4[$other_bridge]:-}" ]]; then
             log_debug \
-                "[Routing] Table $table_id: $other_network/$other_cidr via $gateway dev $bridge"
-
-            run ip -4 route replace \
-                "$other_network/$other_cidr" \
-                via "$gateway" \
-                dev "$bridge" \
-                table "$table_id"
+                "[Routing] Skipping bridge '$other_bridge': no IPv4 network configured"
+            continue
+        fi
+        if [[ "${BRIDGE_IPV4[$other_bridge]}" == "dhcp" ]]; then
+            log_error \
+                "[Routing] Bridge '$other_bridge' cannot use DHCP for policy routing"
+            return 1
+        fi
+        declare -A other_info
+        calc_network_info "$other_bridge" other_info || {
+            log_error \
+                "[Routing] Unable to calculate network for bridge '$other_bridge'"
+            return 1
         }
+        other_network="${other_info[network]}"
+        other_cidr="${other_info[cidr]}"
+        log_debug \
+            "[Routing] Table $table_id: $other_network/$other_cidr via $gateway dev $bridge"
+        routes+=(
+            "$other_network/$other_cidr $gateway 0 table=$table_id"
+        )
     done
 
     # -------------------------------------------------------------------------
@@ -214,16 +300,24 @@ configure_bridge_route_table()
 
     log_debug \
         "[Routing] Table $table_id: default via $gateway dev $bridge"
+    routes+=(
+        "0.0.0.0/0 $gateway 0 table=$table_id"
+    )
 
-    run ip -4 route replace \
-        default \
-        via "$gateway" \
-        dev "$bridge" \
-        table "$table_id"
+    local routes_csv
+
+    routes_csv=$(IFS=','; echo "${routes[*]}")
+
+    log_debug \
+        "[Routing] NetworkManager routes for '$bridge': $routes_csv"
+
+    run nmcli connection modify \
+        "$bridge" \
+        ipv4.routes "$routes_csv"
 }
 
 # -----------------------------------------------------------------------------
-# Configure one LAN policy rule
+# Configure one LAN policy rule in NetworkManager
 # -----------------------------------------------------------------------------
 
 configure_lan_rule()
@@ -232,131 +326,141 @@ configure_lan_rule()
     local table_id="$2"
     local lan_network="$3"
     local priority
+    local rule
+    local -a rules=()
+    local -a existing_rules=()
 
     priority=$(get_route_rule_priority "$table_id")
+    rule="priority $priority from $lan_network table $table_id"
     log_debug \
         "[Routing] Rule $priority: from $lan_network lookup table $table_id"
 
-    # ip rule does not provide the same replace operation as ip route.
-    # Delete our deterministic rule first if it already exists.
-    log_debug "[Routing] Verifying if rule with priority $priority already exists"
-    if ip -4 rule show | grep -Eq \
-        "^${priority}: .*from ${lan_network} .*lookup ${table_id}([[:space:]]|$)"; then
-        run ip -4 rule del \
-            priority "$priority"
-    fi
-    log_debug "[Routing] Adding rule with priority $priority"
-    run ip -4 rule add \
-        priority "$priority" \
-        from "$lan_network" \
-        table "$table_id"
+    # -------------------------------------------------------------------------
+    # Preserve non-pfVEdge routing rules already present in the profile.
+    # -------------------------------------------------------------------------
+
+    get_existing_nm_rules "$bridge" existing_rules
+    for existing_rule in "${existing_rules[@]}"; do
+        rules+=("$existing_rule")
+    done
+    rules+=("$rule")
+
+    local rules_csv
+
+    rules_csv=$(IFS=','; echo "${rules[*]}")
+    log_debug \
+        "[Routing] NetworkManager routing rules for '$bridge': $rules_csv"
+    run nmcli connection modify \
+        "$bridge" \
+        ipv4.routing-rules "$rules_csv"
 }
 
 # -----------------------------------------------------------------------------
-# Remove stale pfVEdge LAN rules
+# Remove legacy pfVEdge kernel routing state
+#
+# This is intentionally kept only as a migration/cleanup step.
+# Runtime routing is no longer managed with ip route/ip rule.
 # -----------------------------------------------------------------------------
 
-cleanup_lan_rules()
-{
-    local priority
-
-    while read -r priority; do
-        [[ "$priority" =~ ^[0-9]+$ ]] || continue
-        if (( priority >= ROUTE_RULE_PRIORITY_BASE &&
-              priority < ROUTE_RULE_PRIORITY_BASE + ROUTE_TABLE_SIZE )); then
-            log_debug \
-                "[Routing] Removing pfVEdge routing rule with priority $priority"
-            run ip -4 rule del priority "$priority"
-        fi
-    done < <(
-        ip -4 rule show |
-        awk -F: '
-            {
-                gsub(/^[[:space:]]+/, "", $1)
-                print $1
-            }
-        '
-    )
-}
-
-# -----------------------------------------------------------------------------
-# Configure LAN policy routing
-# -----------------------------------------------------------------------------
-
-configure_lan_policy_routing()
+cleanup_legacy_routing()
 {
     local bridge
     local table_id
     local priority
-    local gateway
-    local lan_network
-    local lan_cidr
-    declare -A lan_info
 
-    log_info "[Routing] Configuring route policies"
-    validate_route_table_ids || return 1
-
-    # Remove only rules belonging to pfVEdge.
-    cleanup_lan_rules
+    log_info "[Routing] Cleaning legacy kernel routing state"
     for bridge in "${BRIDGE_NAMES[@]}"; do
-        log_debug "[Routing] Processing bridge '$bridge'"
-        [[ "${BRIDGE_FWROLE[$bridge]}" == "wan" || "${BRIDGE_IFACE_TYPE[$bridge]}" == "podman" ]] && continue
-        log_debug "[Routing] Configuring route policy for bridge '$bridge'"
-        if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
-            log_error \
-                "[Routing] bridge '$bridge' has no IPv4 configuration"
-            return 1
-        fi
-        if [[ "${BRIDGE_IPV4[$bridge]}" == "dhcp" ]]; then
-            log_error \
-                "[Routing] bridge '$bridge' cannot use DHCP for route policy"
-            return 1
-        fi
-        log_debug "[Routing] '$bridge' is Eligible for route policy"
-        unset lan_info
-        declare -A lan_info
-
-        get_bridge_network_info "$bridge" lan_info || {
-            log_error \
-                "[Routing] Unable to calculate network information for bridge '$bridge'"
-            return 1
-        }
-        lan_network="${lan_info[network]}"
-        lan_cidr="${lan_info[cidr]}"
-        gateway="${lan_info[gateway]}"
-
-        log_debug "[Routing] Calculated gateway for bridge '$bridge': $gateway"
-        if [[ -z "$gateway" ]]; then
-            log_error \
-                "[Routing] Unable to calculate firewall gateway for bridge '$bridge'"
-            return 1
-        fi
+        [[ "${BRIDGE_FWROLE[$bridge]}" == "wan" ]] && continue
+        [[ "${BRIDGE_IFACE_TYPE[$bridge]}" == "podman" ]] && continue
+        [[ -n "${BRIDGE_IPV4[$bridge]:-}" ]] || continue
+        [[ "${BRIDGE_IPV4[$bridge]}" != "dhcp" ]] || continue
         table_id=$(get_route_table_id "$bridge")
         priority=$(get_route_rule_priority "$table_id")
-        log_info \
-            "[Routing] LAN '$bridge': $lan_network/$lan_cidr -> firewall $gateway, table $table_id, rule $priority"
-        configure_bridge_route_table \
-            "$bridge" \
-            "$table_id" \
-            "$lan_network/$lan_cidr" \
-            "$gateway" || return 1
-        configure_lan_rule \
-            "$bridge" \
-            "$table_id" \
-            "$lan_network/$lan_cidr" || return 1
+        log_debug \
+            "[Routing] Removing legacy rule $priority and table $table_id for '$bridge'"
+        ip -4 rule del priority "$priority" 2>/dev/null || true
+        ip -4 route flush table "$table_id" 2>/dev/null || true
     done
     return 0
 }
 
 # -----------------------------------------------------------------------------
+# Prepare routing
+# -----------------------------------------------------------------------------
+
+prepare_routing()
+{
+    log_info "[Routing] Preparing routing configuration"
+    validate_route_table_ids || return 1
+    cleanup_legacy_routing || return 1
+    return 0
+}
+
+# -----------------------------------------------------------------------------
+# Configure one bridge policy routing profile
+# -----------------------------------------------------------------------------
+
+configure_bridge_policy_routing()
+{
+    local bridge="$1"
+    local table_id
+    local priority
+    local gateway
+    local lan_network
+    local lan_cidr
+
+    declare -A lan_info
+
+    [[ "${BRIDGE_FWROLE[$bridge]}" == "wan" ]] && return 0
+    [[ "${BRIDGE_IFACE_TYPE[$bridge]}" == "podman" ]] && return 0
+    if [[ -z "${BRIDGE_IPV4[$bridge]}" ]]; then
+        log_error \
+            "[Routing] Bridge '$bridge' has no IPv4 configuration"
+        return 1
+    fi
+    if [[ "${BRIDGE_IPV4[$bridge]}" == "dhcp" ]]; then
+        log_debug \
+            "[Routing] Skipping DHCP bridge '$bridge': not eligible for policy routing"
+        return 0
+    fi
+    get_bridge_network_info "$bridge" lan_info || {
+        log_error \
+            "[Routing] Unable to calculate network information for bridge '$bridge'"
+        return 1
+    }
+    lan_network="${lan_info[network]}"
+    lan_cidr="${lan_info[cidr]}"
+    gateway="${lan_info[gateway]}"
+    if [[ -z "$gateway" ]]; then
+        log_error \
+            "[Routing] Unable to calculate firewall gateway for bridge '$bridge'"
+        return 1
+    fi
+    table_id=$(get_route_table_id "$bridge")
+    priority=$(get_route_rule_priority "$table_id")
+    log_info \
+        "[Routing] LAN '$bridge': $lan_network/$lan_cidr -> firewall $gateway, table $table_id, rule $priority"
+    configure_bridge_route_table \
+        "$bridge" \
+        "$table_id" \
+        "$lan_network/$lan_cidr" \
+        "$gateway" || return 1
+    configure_lan_rule \
+        "$bridge" \
+        "$table_id" \
+        "$lan_network/$lan_cidr" || return 1
+    return 0
+}
+
+# -----------------------------------------------------------------------------
 # Main routing configuration
+#
+# Kept as a compatibility wrapper for callers outside qemu-networks.sh.
+# Runtime routing is now configured per NetworkManager connection.
 # -----------------------------------------------------------------------------
 
 configure_routing()
 {
-    # The WAN default route is intentionally managed by NetworkManager
-    # LAN policy routing is managed here.
-    configure_lan_policy_routing || return 1
-    log_info "[Routing] Routing configuration completed"
+    log_info "[Routing] NetworkManager-based routing is configured per bridge"
     return 0
 }

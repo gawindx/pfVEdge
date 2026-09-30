@@ -39,7 +39,7 @@ nm_backup_transaction
 if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
     log_debug "[NETWORK] NET_INT set to true or ${NET_STATE_FILE} doesn't exists"
     log_debug "[NETWORK] Network will be fully initialised"
-    [[ -e "${NET_STATE_FILE}" ]] && rm -f ${NET_STATE_FILE}
+    [[ -e "${NET_STATE_FILE}" ]] && rm -f "${NET_STATE_FILE}"
     INIT_NETWORK=true
 fi
 
@@ -49,11 +49,29 @@ if [[ "${INIT_NETWORK}" == "true" ]]; then
 fi
 
 # ============================================================
+# Routing preparation
+#
+# Validate deterministic IDs and remove only legacy pfVEdge
+# kernel routing state. Actual routes/rules are then stored
+# directly in each NetworkManager bridge profile.
+# ============================================================
+
+log_info "[Routing] Preparing NetworkManager routing"
+
+if ! prepare_routing; then
+    log_error "[Routing] Routing preparation failed"
+    return 1
+fi
+
+# ============================================================
 # Bridges
 # ============================================================
 
 log_info "[Network] Creating bridges"
-create_or_validate_bridges
+if ! create_or_validate_bridges; then
+    log_error "[Network] Bridge creation/configuration failed"
+    return 1
+fi
 log_info "[Network] Attaching bridge ports"
 attach_bridge_ports
 log_info "[Network] Applying MTU"
@@ -64,11 +82,11 @@ log_info "[Network] Verify if User's config exists"
 [[ ! -d "$(profile_path recovery)" ]] && \
     log_info "[Network] User's config missing, create it!"
 save_profile
-log_info "[Routing] Configuring routing"
-if ! configure_routing; then
-    log_error "[Routing] Routing configuration failed"
-    return 1
-fi
+
+# ============================================================
+# Firewalld
+# ============================================================
+
 log_info "[Network] Configuring Firewalld for pfVEdge"
 configure_firewall pfVEdge
 
@@ -88,6 +106,7 @@ fi
 # ============================================================
 
 log_info "[Network] Creating TAP interfaces"
+
 if ! create_taps
 then
     log_error "[Network] TAP creation failed"

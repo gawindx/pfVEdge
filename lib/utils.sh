@@ -131,12 +131,12 @@ calc_network_info() {
         "[Routing] calculate network info for '$bridge' : $net as network"
 
     result[cidr]="$cidr"
-    result[network]="$(( int_to_ip "$net" ))"
+    result[network]="$( int_to_ip "$net" )"
 
     if [[ -n "$explicit_gateway" ]]; then
         result[gateway]="$explicit_gateway"
     elif [ "$cidr" -le 30 ]; then
-        result[gateway]=$(int_to_ip $(( net + ${FWD_GW_OFFSET} )))
+        result[gateway]="$(int_to_ip $(( $net + ${FWD_GW_OFFSET} )))"
     else
         result[gateway]=""
     fi

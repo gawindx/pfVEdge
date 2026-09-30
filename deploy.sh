@@ -100,6 +100,7 @@ echo "[INFO] Enabling units"
 find "$SERVICES_DIR/etc/systemd/system" \
     -type f \
     \( ! -name "pfVEdge-recovery.service" \
+    ! -name "DelayedStart@.timer" \
     -name "*.service" -o -name "*.timer" \
     -o -name "*.target" \)\
 | while read -r src

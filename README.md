@@ -282,7 +282,7 @@ Three profiles, managed by `lib/firewalld.sh` / `scripts/firewalld-profile.sh`:
 |------------|-------------------------------------------------------|------------------------------------------------|
 | `user`     | Automatically backed up before the first deployment,  | The host's original firewalld configuration,   |
 |            | restored by `undeploy.sh`                             | before the project was integrated              |
-| `pfSense`  | Normal operation                                      | One zone per bridge, `DROP` by default,        |
+| `pfVEdge`  | Normal operation                                      | One zone per bridge, `DROP` by default,        |
 |            |                                                       | optionally SSH if `FWD_ALLOW_SSH_HOST=true`    |
 | `recovery` | After repeated failure of the pfVEdge container       | A single zone grouping all bridges, `DROP` by  |
 |            |                                                       | default, only SSH open                         |

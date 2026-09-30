@@ -5,6 +5,8 @@ log()   { echo "[pfVEdge][INFO] $*"; }
 warn()  { echo "[pfVEdge][WARN] $*" >&2; }
 error() { echo "[pfVEdge][ERROR] $*" >&2; }
 
+RAM_SIZES=${RAM_SIZES:-4G}
+CPU_CORES=${CPU_CORES:-2}
 ENV_FILE="/tmp/qemu-tap-pfVEdge.env"
 if [[ ! -f "$ENV_FILE" ]]; then
     error "Missing TAP env file inside container"
@@ -81,16 +83,15 @@ log "Using QEMU network model: $NET_MODEL"
 #
 NET_MODEL_OPTIONS=""
 if [[ "$NET_MODEL" == "virtio-net-pci" ]]; then
-    if [[ "${QEMU_VIRTIO_NET_MQ:-false}" == "true" ]] && [ ${CPU_CORES:-1} -gt 1 ]; then
+    if [[ "${QEMU_VIRTIO_NET_MQ:-false}" == "true" && ${CPU_CORES} -gt 1 ]]; then
         # Formula : (2 * CPU_CORES) + 2
-        vectors_val=$(( (CPU_CORES * 2) + 2 ))
+        vectors_val=$(( ($CPU_CORES * 2) + 2 ))
         NET_MODEL_OPTIONS=",mq=on,vectors=$vectors_val"
         log "Virtio multiqueue enabled with $CPU_CORES queues (vectors=$vectors_val)"
     else
         NET_MODEL_OPTIONS=",mq=off,vectors=3"
         log "Virtio multiqueue disabled (1 CPU core or feature off)"
     fi
-
 fi
 
 # ==========================================

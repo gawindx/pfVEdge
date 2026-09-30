@@ -19,9 +19,9 @@ ENV NETWORK="N"
 ENV BOOT="https://repo.ialab.dsu.edu/pfsense/pfSense-CE-memstick-2.7.2-RELEASE-amd64.img.gz"
 
 # VM resources (overridable)
-ENV DISK_SIZE="10G"
-ENV RAM_SIZE="4G"
-ENV CPU_CORES="1"
+ENV DISK_SIZE=10G
+ENV RAM_SIZE=4G
+ENV CPU_CORES=2
 ENV PF_BOOT="pfsense"
 
 # ============================================

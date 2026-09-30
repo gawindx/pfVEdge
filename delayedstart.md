@@ -157,6 +157,7 @@ ExecStart=/path/to/application
 Restart=always
 RestartSec=10s
 ```
+Also no [Install].
 
 and still use:
 

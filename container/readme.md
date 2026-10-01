@@ -1,189 +1,42 @@
-# pfVEdge — Container
+# pfVEdge Container
 
-This folder contains the container image that runs the **pfVEdge** VM under **QEMU**, together with its dual supervision (Podman healthcheck + internal watchdog).
+This directory contains the container definition and runtime files used to run the pfVEdge QEMU environment.
 
-This container is one component of the [pfVEdge](../README.md) project: it does **not** manage bridges, TAPs, or firewalld on the host side. Its only job is to cleanly boot the pfVEdge VM with the network interfaces it is handed, and to correctly report its health status to the rest of the stack.
+## Contents
 
----
+The container is responsible for running the QEMU virtual machine and exposing the interfaces required to connect the VM to the pfVEdge host networking.
 
-## 1. Principle
+The main components include:
 
-The image is built on top of [`qemux/qemu`](https://github.com/qemus/qemu), which already knows how to boot a QEMU/KVM VM from a disk image, with a web viewer (noVNC). This project adds on top of it:
+* the container image definition;
+* the QEMU startup script;
+* QEMU network/TAP handling;
+* the QMP monitor socket;
+* the noVNC console;
+* the QEMU healthcheck and watchdog logic;
+* the pfSense / OPNsense VM storage.
 
-- **injection of TAP interfaces** provided by the host (instead of the image's built-in NAT/bridge networking, which is disabled);
-- a **Podman healthcheck** querying QEMU over QMP;
-- an **internal watchdog** that continuously monitors the VM and triggers a clean shutdown if it becomes unusable.
+## Documentation
 
-```
-┌────────────────────────────────────────────────┐
-│                  Container                     │
-│                                                │
-│   Host TAP ──▶ start.sh ──▶ qemu-system       │
-│                                (pfVEdge)       │
-│                                    │           │
-│                             QMP socket         │
-│                              /run/shm/         │
-│                                    │           │
-│           ┌────────────────────────┴──┐        │
-│           │                           │        │
-│    healthcheck.sh               watchdog.sh    │
-│  (Podman HealthCmd, 30s)      (internal loop)  │
-└────────────────────────────────────────────────┘
-```
+The complete documentation for the pfVEdge container is available in:
 
-## 2. Base image
+**[`../docs/container.md`](../docs/container.md)**
 
-```dockerfile
-FROM docker.io/qemux/qemu:7.32
-```
+That document covers:
 
-The image's built-in networking (`NETWORK`) is disabled: the host provides TAP interfaces already attached to Linux bridges, outside of the upstream image's normal networking lifecycle.
+* container architecture;
+* QEMU startup;
+* network and TAP injection;
+* QMP;
+* noVNC;
+* healthchecks;
+* watchdog behaviour;
+* VM installation detection;
+* runtime markers;
+* troubleshooting.
 
-| Variable      | Default in Quadlet ( or Dockerfile)                    | Role                                             |
-|---------------|--------------------------------------------------------|--------------------------------------------------|
-| `NETWORK`     | `N`                                                    | Disables the image's native network management,  |
-|               |                                                        | required for this project.                       |
-| `BOOT`        | pfSense-CE 2.7.2 memstick image (repo.ialab.dsu.edu)   | Default's Boot image used on first installation  |
+## Development
 
-These values cannot  be overridden in the optionnal config file (`config/override.env`).
+Changes to the container startup or QEMU runtime should be tested together with the corresponding systemd/Quadlet units.
 
-| Variable      | Default ( or defaults env file)                        | Role                                             |
-|---------------|--------------------------------------------------------|--------------------------------------------------|
-| `PF_BOOT`     | `pfsense`                                              | Forces the installation of pfsense or another    |
-|               |                                                        | firewall (pfsense|opnsense)                      |
-|               |                                                        | instead of pfSense.                              |
-| `DISK_SIZE`   | `10G`                                                  | pfVEdge virtual disk size                        |
-| `RAM_SIZE`    | `4G`                                                   | RAM allocated to the VM                          |
-| `CPU_CORES`   | `1`                                                    | Number of vCPUs                                  |
-
-These values can be overridden in the optionnal config file (`config/override.env`), not in this Dockerfile, nor quadlet file. Other variables (`KVM`, `ARGUMENTS`, `VERSION`, `TIMEOUT`, …) remain those of the upstream `qemux/qemu` image — refer to its own documentation for their general usage.
-
-As of now, pfVEdge allows you to install either the default `pfSense` or `OPNsense` by overriding the `PF_BOOT` variable with the value `opnsense`.
-
-## 3. TAP interface injection (`src/start.sh`)
-
-`start.sh` is copied to `/run/start.sh`. By convention of the `qemux/qemu` image, this hook is automatically sourced by the entrypoint before `qemu-system` is launched, which allows enriching the `ARGUMENTS` variable without touching the upstream image.
-
-What it does:
-
-1. It reads `/tmp/qemu-tap-pfVEdge.env`, mounted read-only from the host (generated by `scripts/qemu-networks.sh`, see the [main README](../README.md)). This file contains `TAP_IFACES`, the list of TAP interfaces already created and attached to the host bridges.
-2. For each TAP, it generates:
-   - a **stable MAC address**, derived from an MD5 hash of the TAP name (`52:54:xx:xx:xx:xx`) — always identical for a given bridge, which matters because pfVEdge identifies its interfaces by MAC address;
-   - a dedicated `-device pcie-root-port` (q35 topology, one root port per NIC);
-   - a `-netdev tap,...,script=no,downscript=no` backend (no tap script is run by QEMU itself, everything is already prepared on the host side);
-   - a virtual NIC (`-device e1000` or `-device virtio-net-pci`, see below).
-3. It adds a listening QMP socket (`-qmp unix:/run/shm/qmp.sock,server,wait=off`) — the channel later used by the healthcheck and the watchdog.
-4. It finally starts the internal watchdog in the background (`/healthcheck/watchdog.sh &`).
-
-### NIC model
-
-| Variable             | Possible values                                      | Default |
-|----------------------|------------------------------------------------------|---------|
-| `QEMU_NET_MODEL`     | `e1000`, `virtio-net-pci`                            | `e1000` |
-| `QEMU_VIRTIO_NET_MQ` | `true` / `false` (multiqueue, `virtio-net-pci` only) | `false` |
-
-`virtio-net-pci` is recommended for better performance; `e1000` remains the most compatible choice if pfVEdge has driver issues.
-This values can be overriden in the optionnal config file `config/override.env`.
-
-## 4. Dual supervision
-
-The container is protected by two complementary, independent mechanisms that don't act at the same level:
-
-### 4.1 Podman healthcheck (`src/healthcheck/healthcheck.sh`)
-
-Declared in the quadlet (`HealthCmd`, `HealthInterval=30s`, `HealthRetries=3`, `HealthTimeout=10s`). On every call it checks:
-
-1. that the QEMU PID exists (`/run/shm/qemu.pid`) and the process is alive;
-2. that the QMP socket exists (`/run/shm/qmp.sock`);
-3. that a QMP request (`query-status`) returns `"status":"running"` and `"running":true`.
-
-This is what **Podman/systemd** use to decide whether the service is "healthy". It doesn't restart anything by itself: it only exposes a status.
-
-### 4.2 Internal watchdog (`src/healthcheck/watchdog.sh`)
-
-Started by `start.sh`, it runs **continuously inside the container**, independently from the Podman healthcheck, with its own cumulative-failure logic:
-
-- every `WDG_CHECK_INTERVAL` seconds (30s by default), it checks that the PID is valid (`/proc/<pid>/cmdline` contains `qemu-system`) and that QMP responds correctly (same criteria as the healthcheck);
-- a grace period `WDG_START_DELAY` (120s by default) is granted at startup, giving QEMU time to create its PID file;
-- after `WDG_MAX_FAIL` consecutive failures (3 by default), it triggers a **clean shutdown**:
-  1. requests an ACPI power-off via QMP (`system_powerdown`) — lets pfVEdge shut down gracefully;
-  2. waits up to `WDG_SHUTDOWN_TIMEOUT` seconds (60 by default);
-  3. otherwise escalates to `SIGTERM` then `SIGKILL`;
-  4. the script exits with `exit 1`, which makes the container's main process fail.
-
-| Variable                 | Default | Role                                                                    |
-|--------------------------|---------|-------------------------------------------------------------------------|
-| `WDG_CHECK_INTERVAL`     | `30`    | Interval between two checks (s)                                         |
-| `WDG_START_DELAY`        | `120`   | Startup grace period before counting a boot failure (s)                 |
-| `WDG_MAX_FAIL`           | `3`     | Number of consecutive failures before forced shutdown                   |
-| `WDG_SHUTDOWN_TIMEOUT`   | `60`    | Time allowed for ACPI shutdown before escalating to SIGTERM/SIGKILL (s) |
-| `WDG_QMP_TIMEOUT`        | `10`    | Time allowed for QMP command execution                                  |
-
-This values can be overriden in the optionnal config file `config/override.env`.
-
-### 4.3 Why two mechanisms?
-
-- The **Podman healthcheck** is a simple status indicator, consumed by systemd/Podman and visible via `podman ps` / `systemctl status`.
-- The **internal watchdog** is the one that actually acts when the VM is stuck or inconsistent (dead PID, silent QMP, invalid status): it attempts a clean shutdown and then fails the container.
-
-It's this (repeated) container failure that then propagates to the host systemd level (`StartLimitBurst`, `OnFailure=pfVEdge-recovery.service`) and triggers, if needed, the firewalld fallback described in the [main README](../README.md#recovery).
-
-## 5. Volumes, capabilities and networking
-
-Defined on the host side in the quadlet or qemus base container, restated here for reference:
-
-| Item            | Value                                                        | Role                                        |
-|-----------------|--------------------------------------------------------------|---------------------------------------------|
-| `Volume`        | `/run/pfVEdge/network.env:/tmp/qemu-tap-pfVEdge.env:ro`      | List of TAPs to inject (generated by the    |
-|                 |                                                              | host)                                       |
-| `Volume`        | `<project>/storage:/storage`                                 | Persistent disk of the pfVEdge VM           |
-| `AddDevice`     | `/dev/net/tun`, `/dev/vhost-net`, `/dev/kvm`                 | TAP/TUN access and KVM acceleration         |
-| `AddCapability` | `NET_ADMIN`                                                  | Required to manipulate TAPs in the          |
-|                 |                                                              | container's netns                           |
-| `Network`       | `host`                                                       | **Required**: TAPs must live in the same    | 
-|                 |                                                              | net namespace as the host bridges           |
-| `WEB_PORT`      | `8006`                                                       | Web noVNC (upstream web viewer)             |
-|                 |                                                              | Useful for initial pfVEdge install / visual |
-|                 |                                                              | troubleshooting; not published by default   |
-|                 |                                                              | (`Network=host`)                            |
-
-This values can be overriden in the optionnal config file `config/override.env`.
-
-## 6. Building and testing the image manually
-
-```bash
-# From the project root
-podman build -t pfVEdge:current ./container
-
-# Quick standalone test (bypassing systemd/quadlet)
-podman run --rm -it \
-  --network host \
-  --cap-add NET_ADMIN \
-  --device /dev/net/tun \
-  --device /dev/kvm \
-  -e TAP_IFACES="tap-wan tap-trunk" \
-  -v /run/pfVEdge/network.env:/tmp/qemu-tap-pfVEdge.env:ro \
-  -v ./storage:/storage \
-  localhost/pfVEdge:current
-```
-
-> In normal use, this container is **never started manually**: it is launched by the `pfVEdge.container` quadlet, which itself depends on `pfVEdge-bridges.service` (see the [main README](../README.md)).
-
-## 7. Troubleshooting
-
-```bash
-# Podman healthcheck status
-podman inspect --format '{{.State.Health.Status}}' pfVEdge
-
-# Container logs (start.sh, watchdog, qemu)
-journalctl -u pfVEdge.service -f
-
-# Manual QMP dialogue from inside the container
-podman exec -it pfVEdge sh -c \
-  '{ printf "%s\n" "{\"execute\":\"qmp_capabilities\"}"; sleep 0.2; \
-     printf "%s\n" "{\"execute\":\"query-status\"}"; } | nc -U -N /run/shm/qmp.sock'
-```
-
-## 8. License
-
-MIT — see [`license.md`](./license.md). This container builds on the [`qemux/qemu`](https://github.com/qemus/qemu) image, distributed under its own license.
+The container is normally built and managed through the pfVEdge deployment scripts rather than manually.

@@ -15,37 +15,40 @@ DelayedStart@.timer
 An administrator enables an instance for any systemd service that should use delayed startup:
 
 ```bash
-systemctl enable DelayedStart@USerService.timer
+systemctl enable DelayedStart@UserService.timer
 ```
 
-The instance name (`USerService`) identifies the service started by the timer:
+The instance name (`UserService`) identifies the service started by the timer:
 
 ```text
-DelayedStart@USerService.timer
+DelayedStart@UserService.timer
         |
         | Unit=%i.service
         v
-   USerService.service
+   UserService.service
 ```
 
 The timer is enabled as a dependency of `pfVEdge.target`. When pfVEdge starts, the timer schedules the service instead of starting it immediately.
 
-The default startup window is:
+The default timer configuration is:
 
-```text
-45 seconds + random delay of 0–30 seconds
+```ini
+[Timer]
+OnActiveSec=45s
+RandomizedDelaySec=30s
+AccuracySec=5s
 ```
 
-Therefore, each service starts between approximately **45 and 75 seconds** after the timer is activated.
+This means that the service is normally started approximately **45 to 75 seconds** after the timer becomes active, with a small scheduling tolerance controlled by `AccuracySec`.
 
-This spreads the initial workload instead of starting all dependent applications simultaneously.
+The random delay is intentional: it spreads the initial workload instead of starting all dependent applications simultaneously.
 
 ## Enabling delayed startup
 
-For a service named `USerService.service`:
+For a service named `UserService.service`:
 
 ```bash
-systemctl enable DelayedStart@USerService.timer
+systemctl enable DelayedStart@UserService.timer
 ```
 
 No modification of `pfVEdge.target` is required.
@@ -55,13 +58,13 @@ The instance is automatically installed in the appropriate systemd dependency di
 To test an instance immediately without enabling it permanently:
 
 ```bash
-systemctl start DelayedStart@USerService.timer
+systemctl start DelayedStart@UserService.timer
 ```
 
 To inspect it:
 
 ```bash
-systemctl status DelayedStart@USerService.timer
+systemctl status DelayedStart@UserService.timer
 ```
 
 To list active delayed-start timers:
@@ -69,6 +72,111 @@ To list active delayed-start timers:
 ```bash
 systemctl list-timers 'DelayedStart@*.timer'
 ```
+
+## Customizing the startup delay
+
+The default delay is suitable for most installations, but it can be changed without modifying the files installed by pfVEdge.
+
+Systemd provides **drop-in overrides** specifically for this purpose.
+
+To change the default delay for all `DelayedStart@` instances:
+
+```bash
+systemctl edit DelayedStart@.timer
+```
+
+Add a `[Timer]` section containing the values you want to override.
+
+For example:
+
+```ini
+[Timer]
+OnActiveSec=60s
+RandomizedDelaySec=60s
+```
+
+With this configuration, services will normally start approximately **60 to 120 seconds** after their delayed-start timer becomes active.
+
+Only the properties explicitly specified in the override are changed. Other timer settings provided by pfVEdge remain unchanged.
+
+For example, to change only the random delay:
+
+```ini
+[Timer]
+RandomizedDelaySec=60s
+```
+
+The original `OnActiveSec=45s` and `AccuracySec=5s` settings remain in effect.
+
+### Per-service customization
+
+If a different delay is required for a particular service, the override can be applied to the specific timer instance instead:
+
+```bash
+systemctl edit DelayedStart@UserService.timer
+```
+
+For example:
+
+```ini
+[Timer]
+OnActiveSec=120s
+RandomizedDelaySec=30s
+```
+
+This changes the delay only for `UserService`.
+
+### Template versus instance
+
+There are two different types of override:
+
+```bash
+# All delayed-start instances
+systemctl edit DelayedStart@.timer
+```
+
+and:
+
+```bash
+# One specific instance
+systemctl edit DelayedStart@UserService.timer
+```
+
+Use the **template override** when the same delay should apply to all services.
+
+Use an **instance override** when one service needs a different startup delay.
+
+### Where does the override go?
+
+`systemctl edit` creates a systemd drop-in rather than modifying the original pfVEdge file.
+
+For the template, the resulting file is typically:
+
+```text
+/etc/systemd/system/DelayedStart@.timer.d/override.conf
+```
+
+For an individual instance:
+
+```text
+/etc/systemd/system/DelayedStart@UserService.timer.d/override.conf
+```
+
+This is preferable to editing the timer installed by pfVEdge because the override is kept separately from the project files and is therefore not overwritten when pfVEdge is upgraded.
+
+After creating or modifying an override, reload the systemd configuration:
+
+```bash
+systemctl daemon-reload
+```
+
+The timer can then be restarted if the change needs to take effect immediately on an already active timer:
+
+```bash
+systemctl restart DelayedStart@UserService.timer
+```
+
+> **Note:** restarting the timer does not restart the associated service directly. It resets the timer and schedules a new delayed activation according to its current configuration.
 
 ## Service configuration
 
@@ -91,7 +199,8 @@ ExecStart=/path/to/application
 Restart=always
 RestartSec=10s
 ```
-Note that tere is no [Install].
+
+Note that there is no `[Install]`.
 
 Then:
 
@@ -110,7 +219,7 @@ pfVEdge.target
       v
 DelayedStart@Example.timer
       |
-    45–75s
+   45–75s
       |
       v
 Example.service
@@ -135,7 +244,7 @@ MasterService.service
 Use:
 
 ```bash
-systemctl enable DelayedStart@MAsterService.timer
+systemctl enable DelayedStart@MasterService.timer
 ```
 
 rather than creating separate delayed-start timers for every component.
@@ -157,7 +266,8 @@ ExecStart=/path/to/application
 Restart=always
 RestartSec=10s
 ```
-Also no [Install].
+
+Also no `[Install]`.
 
 and still use:
 

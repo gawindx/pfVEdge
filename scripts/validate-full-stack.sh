@@ -482,31 +482,6 @@ check_guest_nics() {
 }
 
 # =========================================================================
-# Section: VLAN trunk sniffing (best-effort, informational only)
-# =========================================================================
-
-check_vlan_trunk() {
-    section "Connectivity - VLAN (trunk)"
-
-    local tap
-    tap=$(bridge_to_tap "br-trunk")
-
-    if ! ip link show "$tap" &>/dev/null; then
-        info "$tap not found — VLAN test skipped"
-        return
-    fi
-    if ! command -v tcpdump &>/dev/null; then
-        info "tcpdump not installed — VLAN test skipped"
-        return
-    fi
-    if timeout 3 tcpdump -i "$tap" -nn -c 1 vlan &>/dev/null; then
-        ok "VLAN-tagged traffic observed on $tap"
-    else
-        info "no VLAN traffic observed on $tap in the 3s window (may simply be idle)"
-    fi
-}
-
-# =========================================================================
 # Section: optional real NAT test through pfVEdge, via the DMZ
 #
 # Running from the host is not representative (Network=host means the
@@ -568,7 +543,6 @@ main() {
     if [[ "$MODE" == "full" ]]; then
         check_container
         check_guest_nics
-        check_vlan_trunk
         $WITH_NAT_TEST && check_nat_via_dmz
     fi
 

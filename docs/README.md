@@ -120,7 +120,7 @@ Network bridges are managed through **NetworkManager/nmcli**.
 The network topology is declared through `BRIDGES_NETWORKS`, with one entry per bridge.
 
 ```text
-bridge_name:type:interfaces[,interfaces]:ipv4:vlans[,vlans]:firewall-role
+bridge_name:type:interfaces[,interfaces]:ipv4:firewall-role
 ```
 
 | Field           | Description                                                        |
@@ -129,7 +129,6 @@ bridge_name:type:interfaces[,interfaces]:ipv4:vlans[,vlans]:firewall-role
 | `type`          | `podman` for a Podman network, otherwise a physical/host interface |
 | `interfaces`    | Host interface(s) attached to the bridge                           |
 | `ipv4`          | Static CIDR, `dhcp`, or empty                                      |
-| `vlans`         | Declarative VLAN information handled by the firewall side          |
 | `firewall-role` | `wan`, `lan` or `dmz`                                              |
 
 Example:

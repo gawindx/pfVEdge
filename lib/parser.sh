@@ -7,7 +7,6 @@ parse_networks() {
     declare -gA BRIDGE_IFACES
     declare -gA BRIDGE_IPV4
     declare -gA BRIDGE_IP_GW
-    declare -gA BRIDGE_VLANS
     declare -gA BRIDGE_FWROLE
     declare -ga BRIDGE_NAMES
     declare -A seen
@@ -20,7 +19,7 @@ parse_networks() {
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         [[ "$line" =~ ^# ]] && continue
-        IFS=':' read -r bridge iface_type ifaces ipv4 vlans fwrole <<< "$line"
+        IFS=':' read -r bridge iface_type ifaces ipv4 fwrole <<< "$line"
         bridge="br-$bridge"
         validate_bridge_name "$bridge"
         if [[ -n "${seen[$bridge]:-}" ]]; then
@@ -60,18 +59,6 @@ parse_networks() {
             log_error "[Parser] Invalid bridge configuration for $bridge (no interfaces specified)"
             exit "$E_VALIDATION"
         fi
-        # Normalize VLAN
-        if [[ -n "$vlans" ]]; then
-            IFS=',' read -ra arr <<< "$vlans"
-            clean=()
-            for v in "${arr[@]}"; do
-                v=$(trim "$v")
-                [[ -z "$v" ]] && continue
-                clean+=("$v")
-            done
-            vlans="$(IFS=','; echo "${clean[*]}")"
-            validate_vlans "$vlans"
-        fi
         if [[ -z "$fwrole" ]]; then
             fwrole="wan"
         else
@@ -83,8 +70,7 @@ parse_networks() {
         BRIDGE_IFACES["$bridge"]=$(trim "$ifaces")
         BRIDGE_IPV4["$bridge"]=$(trim "$ipv4")
         BRIDGE_IP_GW["$bridge"]=$(trim "$ipv4gw")
-        BRIDGE_VLANS["$bridge"]=$(trim "$vlans")
         BRIDGE_FWROLE["$bridge"]=$(trim "$fwrole")
-        log_debug "[Parser] Parsed $bridge → ifaces=$ifaces ip=$ipv4 vlans=$vlans type=$iface_type firewall_role=$fwrole"
+        log_debug "[Parser] Parsed $bridge → ifaces=$ifaces type=$iface_type ip=$ipv4 firewall_role=$fwrole"
     done <<< "$input"
 }

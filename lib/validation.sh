@@ -97,34 +97,6 @@ validate_interfaces() {
     done
 }
 
-# ============================================================
-# Validate Env Vlans
-# ============================================================
-
-validate_vlans() {
-    log_debug "[Validate] Receive '$1' as VLAN"
-    IFS=',' read -ra arr <<< "$1"
-    declare -A seen
-
-    for v in "${arr[@]}"; do
-        v=$(trim "$v")
-        [[ "$v" =~ ^[0-9]+$ ]] || {
-            log_error "[Validate] Invalid VLAN: '$v'"
-            exit "$E_VALIDATION"
-        }
-        ((v >= 1 && v <= 4094)) || {
-            log_error "[Validate] VLAN out of range: '$v'"
-            exit "$E_VALIDATION"
-        }
-        if [[ -n "${seen[$v]:-}" ]]; then
-            log_error "[Validate] Duplicate VLAN: '$v'"
-            exit "$E_VALIDATION"
-        fi
-        log_debug "[Validate] VLAN '$v' Validated"
-        seen[$v]=1
-    done
-}
-
 # ============================================================================
 # Validate FireWall roles
 # ============================================================================
@@ -174,7 +146,6 @@ validate_bridge()
     local iface_type="${BRIDGE_IFACE_TYPE[$br]}"
     local ifaces="${BRIDGE_IFACES[$br]}"
     local ipv4="${BRIDGE_IPV4[$br]}"
-    local vlans="${BRIDGE_VLANS[$br]}"
     local role="${BRIDGE_FWROLE[$br]}"
 
     # ------------------------------------------------------------------------
@@ -253,12 +224,6 @@ validate_bridge()
     # ------------------------------------------------------------------------
 
     validate_bridge_ipv4 "$br" "$ipv4" || return 1
-
-    # ------------------------------------------------------------------------
-    # Validate VLANs
-    # ------------------------------------------------------------------------
-
-    validate_bridge_vlans "$br" "$vlans" || return 1
 
     # ------------------------------------------------------------------------
     # Validate firewall role
@@ -358,31 +323,6 @@ validate_bridge_ipv4()
             fi
             ;;
     esac
-    return 0
-}
-
-# ============================================================================
-# Validate VLAN list
-# ============================================================================
-
-validate_bridge_vlans()
-{
-    local bridge="$1"
-    local vlans="$2"
-    local vlan
-
-    if [[ -z "$vlans" ]]; then
-        return 0
-    fi
-    IFS=',' read -ra vlan_list <<< "$vlans"
-    for vlan in "${vlan_list[@]}"; do
-        if ! [[ "$vlan" =~ ^[0-9]+$ ]]; then
-            log_error "[Validate] Invalid VLAN '$vlan'"
-            return 1
-        else
-            log_debug "[Validate] VLAN '$vlan' is valid"
-        fi
-    done
     return 0
 }
 

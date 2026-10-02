@@ -1,3 +1,4 @@
+```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -10,8 +11,8 @@ init()
     init_paths
     load_core_libraries
     parse_arguments "$@"
-    load_user_config
     load_application_libraries
+    load_user_config
     set_defaults
     prepare_environment
 }
@@ -26,10 +27,10 @@ init_paths()
     PROJECT_DIR="$(cd "$BASE_DIR/.." && pwd)"
 
     INPUT_FILE=""
-    NET_CONF_FILE=""
-    NET_CONF_FILE="$PROJECT_DIR/config/bridges.env"
+    NET_CONF_FILE="$PROJECT_DIR/config/config.json"
     STORAGE_DIR="${PROJECT_DIR}/storage"
-    [[ -d "${STORAGE_DIR}" ]] || mkdir -p "${STORAGE_DIR}"
+
+    [[ -d "$STORAGE_DIR" ]] || mkdir -p "$STORAGE_DIR"
 }
 
 # ============================================================
@@ -53,18 +54,26 @@ parse_arguments()
         case "$1" in
             -i|--input)
                 shift
+
                 if [[ $# -eq 0 ]]; then
                     log_error "[Init] Missing value for -i/--input"
                     exit 1
                 fi
+
                 INPUT_FILE="$1"
                 ;;
+
             *)
                 log_warn "[Init] Unknown argument: $1"
                 ;;
         esac
+
         shift
     done
+
+    if [[ -n "$INPUT_FILE" ]]; then
+        NET_CONF_FILE="$INPUT_FILE"
+    fi
 }
 
 # ============================================================
@@ -73,11 +82,12 @@ parse_arguments()
 
 load_user_config()
 {
-    if [[ -f "$NET_CONF_FILE" ]]; then
-        source <(sed 's/\r$//' "$NET_CONF_FILE")
-    else
-        log_warn "[Init] Configuration file not found: $NET_CONF_FILE"
+    if [[ ! -f "$NET_CONF_FILE" ]]; then
+        log_error "[Init] Configuration file not found: $NET_CONF_FILE"
+        exit "$E_CONFIG"
     fi
+
+    load_json_config "$NET_CONF_FILE"
 }
 
 # ============================================================
@@ -109,11 +119,13 @@ set_defaults()
     QEMU_NETWORK_ENV="${QEMU_NETWORK_ENV:-/run/pfVEdge/network.env}"
     INIT_NETWORK="${INIT_NETWORK:-false}"
 
+    # Firewall
+    FIREWALL=$(trim "${FIREWALL:-pfsense}")
+
     # Bridges
-    BRIDGES_NETWORKS=$(trim "${BRIDGES_NETWORKS:-}")
     BRIDGES_MANAGE_FIREWALL=$(trim "${BRIDGES_MANAGE_FIREWALL:-true}")
 
-    # Network (NM & FWD)
+    # Network
     NET_INIT="$(trim "${NET_INIT:-false}")"
     NET_STATE_FILE="${BACKUP_DIR}/network.initialised"
 
@@ -129,9 +141,6 @@ set_defaults()
 
     # Routes
     # Routing tables reserved for pfVEdge.
-    #
-    # Each LAN bridge gets one deterministic routing table ID derived from
-    # the bridge name.
     #
     # Table IDs:
     #   10000 - 10999
@@ -150,7 +159,7 @@ set_defaults()
     FWD_TMP_DIR="/run/pfVEdge-firewalld"
     FWD_GW_OFFSET="${FWD_GW_OFFSET:-1}"
 
-    # Taps    
+    # Taps
     TAP_IFACES=""
     TAP_PREFIX="${TAP_PREFIX:-tap}"
 }
@@ -162,6 +171,7 @@ prepare_environment()
     # ============================================================
 
     validate_environment
-    parse_networks "$BRIDGES_NETWORKS"
-    log_info "[Init] Environment Validated successfuly"
+    validate_config
+    log_info "[Init] Configuration validated successfully"
 }
+```

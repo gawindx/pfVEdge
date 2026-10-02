@@ -326,9 +326,15 @@ validate_bridge_ipv4()
     return 0
 }
 
-# ============================================================================
-# Validate firewall roles
-# ============================================================================
+# ============================================================
+# Validate configuration bridge roles
+#
+# pfVEdge requires:
+#   - exactly one WAN bridge
+#   - at least one LAN bridge
+#
+# DMZ is optional.
+# ============================================================
 
 validate_fw_roles()
 {
@@ -344,13 +350,21 @@ validate_fw_roles()
             lan)
                 ((lan++))
                 ;;
+            dmz)
+                ;;
             "")
                 log_error "[Validate] Bridge must have a firewall role"
                 return 1
                 ;;
+            *)
+                log_error "[Validate] Invalid firewall role: '$role'"
+                return 1
+                ;;
         esac
     done
-    log_debug "[Validate] Found ${wan} Wan connection, and ${lan} Lan connection"
+    log_debug \
+        "[Validate] Found ${wan} WAN connection(s), " \
+        "${lan} LAN connection(s)"
     if [[ "$wan" -ne 1 ]]; then
         log_error "[Validate] Exactly one WAN bridge required"
         return 1
@@ -359,6 +373,7 @@ validate_fw_roles()
         log_error "[Validate] At least one LAN bridge required"
         return 1
     fi
-    log_debug "[Validate] Firewall roles are valid (WAN=$wan, LAN=$lan)"
+    log_debug \
+        "[Validate] Firewall roles are valid (WAN=$wan, LAN=$lan)"
     return 0
 }

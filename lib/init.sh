@@ -8,10 +8,10 @@ set -euo pipefail
 init()
 {
     init_paths
+    load_user_config
     load_core_libraries
     parse_arguments "$@"
     load_application_libraries
-    load_user_config
     set_defaults
     prepare_environment
 }
@@ -81,8 +81,11 @@ parse_arguments()
 
 load_user_config()
 {
+    source "$PROJECT_DIR/lib/parser.sh"
+    source "$PROJECT_DIR/lib/utils.sh"
+    source "$PROJECT_DIR/lib/validation.sh"
     if [[ ! -f "$NET_CONF_FILE" ]]; then
-        log_error "[Init] Configuration file not found: $NET_CONF_FILE"
+        echo "[ERROR] [Init] Configuration file not found: $NET_CONF_FILE"
         exit "$E_CONFIG"
     fi
 
@@ -95,9 +98,6 @@ load_user_config()
 
 load_application_libraries()
 {
-    source "$PROJECT_DIR/lib/utils.sh"
-    source "$PROJECT_DIR/lib/parser.sh"
-    source "$PROJECT_DIR/lib/validation.sh"
     source "$PROJECT_DIR/lib/bridges.sh"
     source "$PROJECT_DIR/lib/ports.sh"
     source "$PROJECT_DIR/lib/taps.sh"

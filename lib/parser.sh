@@ -9,16 +9,16 @@ load_json_config()
     local config_file="$1"
 
     if ! command -v jq >/dev/null 2>&1; then
-        log_error "[Parser] jq is required to load the JSON configuration"
+        echo "[ERROR] [Parser] jq is required to load the JSON configuration"
         exit "$E_CONFIG"
     fi
 
     if ! jq empty "$config_file" >/dev/null 2>&1; then
-        log_error "[Parser] Invalid JSON configuration: $config_file"
+        echo "[ERROR] [Parser] Invalid JSON configuration: $config_file"
         exit "$E_CONFIG"
     fi
 
-    log_debug "[Parser] Loading configuration: $config_file"
+    echo "[DEBUG] [Parser] Loading configuration: $config_file"
 
     FIREWALL=$(jq -r '.firewall // empty' "$config_file")
     BACKUP_DIR=$(jq -r '.backup_dir // empty' "$config_file")
@@ -76,7 +76,7 @@ parse_json_bridges()
         validate_bridge_name "$bridge"
 
         if [[ -n "${BRIDGE_IFACE_TYPE[$bridge]:-}" ]]; then
-            log_error "[Parser] Duplicate bridge: $bridge"
+            echo "[ERROR] [Parser] Duplicate bridge: $bridge"
             exit "$E_VALIDATION"
         fi
 
@@ -116,7 +116,7 @@ parse_json_bridges()
         # --------------------------------------------------------
 
         if [[ -z "$iface_type" ]]; then
-            log_error "[Parser] Missing iface_type for bridge '$bridge'"
+            echo "[ERROR] [Parser] Missing iface_type for bridge '$bridge'"
             exit "$E_VALIDATION"
         fi
 
@@ -127,7 +127,7 @@ parse_json_bridges()
         # --------------------------------------------------------
 
         if [[ -z "$iface" ]]; then
-            log_error "[Parser] Missing iface for bridge '$bridge'"
+            echo "[ERROR] [Parser] Missing iface for bridge '$bridge'"
             exit "$E_VALIDATION"
         fi
 
@@ -140,7 +140,7 @@ parse_json_bridges()
         if [[ -n "$ipv4" ]]; then
             validate_ipv4 "$ipv4" "$iface_type"
         elif [[ "$iface_type" == "podman" ]]; then
-            log_error "[Parser] Podman bridge '$bridge' must have a static IPv4"
+            echo "[ERROR] [Parser] Podman bridge '$bridge' must have a static IPv4"
             exit "$E_VALIDATION"
         fi
 
@@ -165,7 +165,7 @@ parse_json_bridges()
         # --------------------------------------------------------
 
         if [[ -z "$role" ]]; then
-            log_error "[Parser] Missing role for bridge '$bridge'"
+            echo "[ERROR] [Parser] Missing role for bridge '$bridge'"
             exit "$E_VALIDATION"
         fi
 
@@ -183,8 +183,8 @@ parse_json_bridges()
         BRIDGE_IP_DNS["$bridge"]="$dns"
         BRIDGE_FWROLE["$bridge"]="$role"
 
-        log_debug \
-            "[Parser] Parsed $bridge -> iface=$iface type=$iface_type " \
+        echo \
+            "[DEBUG] [Parser] Parsed $bridge -> iface=$iface type=$iface_type " \
             "ip=$ipv4 gateway=$gateway dns=$dns role=$role"
 
     done < <(
@@ -192,7 +192,7 @@ parse_json_bridges()
     )
 
     if [[ "${#BRIDGE_NAMES[@]}" -eq 0 ]]; then
-        log_error "[Parser] No bridge configured"
+        echo "[ERROR] [Parser] No bridge configured"
         exit "$E_VALIDATION"
     fi
 }
@@ -203,13 +203,13 @@ parse_json_bridges()
 
 validate_config()
 {
-    log_info "[Parser] Validating configuration"
+    echo "[INFO] [Parser] Validating configuration"
 
     case "$FIREWALL" in
         pfsense|opnsense)
             ;;
         *)
-            log_error "[Parser] Invalid firewall: '$FIREWALL'"
+            echo "[ERROR] [Parser] Invalid firewall: '$FIREWALL'"
             return 1
             ;;
     esac
@@ -231,12 +231,12 @@ validate_config()
         || return 1
 
     if [[ ! "$FWD_GW_OFFSET" =~ ^[0-9]+$ ]]; then
-        log_error "[Parser] Invalid gateway_offset: '$FWD_GW_OFFSET'"
+        echo "[ERROR] [Parser] Invalid gateway_offset: '$FWD_GW_OFFSET'"
         return 1
     fi
 
     if [[ -z "$TAP_PREFIX" || ! "$TAP_PREFIX" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-        log_error "[Parser] Invalid tap_prefix: '$TAP_PREFIX'"
+        echo "[ERROR] [Parser] Invalid tap_prefix: '$TAP_PREFIX'"
         return 1
     fi
 
@@ -256,7 +256,7 @@ validate_boolean()
         true|false)
             ;;
         *)
-            log_error "[Parser] Invalid boolean '$name': '$value'"
+            echo "[ERROR] [Parser] Invalid boolean '$name': '$value'"
             return 1
             ;;
     esac

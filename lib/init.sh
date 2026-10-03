@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -174,4 +173,3 @@ prepare_environment()
     validate_config
     log_info "[Init] Configuration validated successfully"
 }
-```

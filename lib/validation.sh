@@ -122,7 +122,7 @@ validate_bridges()
     local i
 
     log_info "[Validate] Validating bridges"
-    log_debug "[Validate] bridges names : \n ${BRIDGE_NAMES[@]}"
+    log_debug "[Validate] bridges names : ${BRIDGE_NAMES[@]}"
     for bridge in "${BRIDGE_NAMES[@]}"
     do
         log_debug "[Validate] Validating bridge : ${bridge}"

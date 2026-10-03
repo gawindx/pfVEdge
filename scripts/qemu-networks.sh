@@ -21,7 +21,6 @@ rm -f /run/pfVEdge/network.ready
 # ============================================================
 
 log_info "[Network] Starting qemu network preparation"
-log_debug "BRIDGES_NETWORKS=$BRIDGES_NETWORKS"
 
 # ============================================================
 # Transaction backup

@@ -123,16 +123,17 @@ migrate_configuration()
         role="$(echo "$role" | xargs)"
 
         [[ -z "$bridge" ]] && continue
-
         bridge="br-$bridge"
-
         if [[ -z "$role" ]]; then
             role="wan"
+        else
+            # Remove the legacy VLAN prefix from the role field.
+            role="${role##*:}"
+            role="$(trim "$role")"
+            [[ -n "$role" ]] || role="wan"
         fi
-
         ipv4_addr=""
         gateway=""
-
         if [[ -n "$ipv4" ]]; then
             if [[ "$ipv4" == "dhcp" ]]; then
                 ipv4_addr="dhcp"
@@ -142,42 +143,32 @@ migrate_configuration()
                 gateway="$(echo "$gateway" | xargs)"
             fi
         fi
-
         if [[ "$first" == "false" ]]; then
             printf ',\n' >> "$tmp_file"
         fi
         first=false
-
         printf '      %s: {\n' \
             "$(jq -Rn --arg v "$bridge" '$v')" >> "$tmp_file"
-
         printf '        "iface": %s,\n' \
             "$(jq -Rn --arg v "$ifaces" '$v')" >> "$tmp_file"
-
         if [[ -z "$iface_type" ]]; then
             iface_type="eth"
         fi
-
         printf '        "iface_type": %s,\n' \
             "$(jq -Rn --arg v "$iface_type" '$v')" >> "$tmp_file"
-
         if [[ -n "$ipv4_addr" ]]; then
             printf '        "ipv4": %s,\n' \
                 "$(jq -Rn --arg v "$ipv4_addr" '$v')" >> "$tmp_file"
         else
             printf '        "ipv4": null,\n' >> "$tmp_file"
         fi
-
         if [[ -n "$gateway" ]]; then
             printf '        "gateway": %s,\n' \
                 "$(jq -Rn --arg v "$gateway" '$v')" >> "$tmp_file"
         fi
-
         printf '        "role": %s\n' \
             "$(jq -Rn --arg v "$role" '$v')" >> "$tmp_file"
-
         printf '      }' >> "$tmp_file"
-
     done <<< "$bridges_networks"
 
     {
@@ -195,9 +186,7 @@ migrate_configuration()
         rm -f "$tmp_file"
         return 1
     fi
-
     mv "$tmp_file" "$NEW_CONFIG"
-
     logger "[INFO] Configuration migration completed"
 }
 

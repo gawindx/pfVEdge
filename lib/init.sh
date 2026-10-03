@@ -42,9 +42,9 @@ load_core_libraries()
 {
     source "$PROJECT_DIR/lib/constants.sh"
     source "$PROJECT_DIR/lib/logging.sh"
-    source "$PROJECT_DIR/lib/parser.sh"
     source "$PROJECT_DIR/lib/utils.sh"
     source "$PROJECT_DIR/lib/validation.sh"
+    source "$PROJECT_DIR/lib/parser.sh"
 }
 
 # ============================================================
@@ -86,7 +86,7 @@ parse_arguments()
 load_user_config()
 {
     if [[ ! -f "$NET_CONF_FILE" ]]; then
-        echo "[ERROR] [Init] Configuration file not found: $NET_CONF_FILE"
+        log_error "[Init] Configuration file not found: $NET_CONF_FILE"
         exit "$E_CONFIG"
     fi
 

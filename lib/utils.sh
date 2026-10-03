@@ -101,6 +101,25 @@ int_to_ip() {
     echo $(( (ip>>24)&255 )).$(( (ip>>16)&255 )).$(( (ip>>8)&255 )).$(( ip&255 ))
 }
 
+calc_gateway() {
+    local input="$1"
+    local ip="${input%/*}"
+    local cidr="${input#*/}"
+    cidr="${cidr:-24}"
+
+    local ip_int="$( ip_to_int "$ip" )"
+    local mask="$(( (0xFFFFFFFF<<(32-cidr))&0xFFFFFFFF ))"
+
+    local net="$(( $ip_int & $mask ))"
+    local gateway
+    if [ "$cidr" -le 30 ]; then
+        gateway="$(int_to_ip $(( $net + ${FWD_GW_OFFSET} )))"
+    else
+        gateway=""
+    fi
+    echo $gateway
+}
+
 calc_network_info() {
     local bridge="$1"
     local input="${BRIDGE_IPV4["$bridge"]}"

@@ -129,7 +129,6 @@ migrate_configuration()
         else
             # Remove the legacy VLAN prefix from the role field.
             role="${role##*:}"
-            role="$(trim "$role")"
             [[ -n "$role" ]] || role="wan"
         fi
         ipv4_addr=""

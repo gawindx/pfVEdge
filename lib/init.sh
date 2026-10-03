@@ -8,8 +8,8 @@ set -euo pipefail
 init()
 {
     init_paths
-    load_user_config
     load_core_libraries
+    load_user_config
     parse_arguments "$@"
     load_application_libraries
     set_defaults
@@ -28,6 +28,7 @@ init_paths()
     INPUT_FILE=""
     NET_CONF_FILE="$PROJECT_DIR/config/config.json"
     STORAGE_DIR="${PROJECT_DIR}/storage"
+    LOG_LEVEL="INFO"
 
     [[ -d "$STORAGE_DIR" ]] || mkdir -p "$STORAGE_DIR"
 }
@@ -41,6 +42,9 @@ load_core_libraries()
 {
     source "$PROJECT_DIR/lib/constants.sh"
     source "$PROJECT_DIR/lib/logging.sh"
+    source "$PROJECT_DIR/lib/parser.sh"
+    source "$PROJECT_DIR/lib/utils.sh"
+    source "$PROJECT_DIR/lib/validation.sh"
 }
 
 # ============================================================
@@ -81,9 +85,6 @@ parse_arguments()
 
 load_user_config()
 {
-    source "$PROJECT_DIR/lib/parser.sh"
-    source "$PROJECT_DIR/lib/utils.sh"
-    source "$PROJECT_DIR/lib/validation.sh"
     if [[ ! -f "$NET_CONF_FILE" ]]; then
         echo "[ERROR] [Init] Configuration file not found: $NET_CONF_FILE"
         exit "$E_CONFIG"

@@ -103,16 +103,19 @@ add_novnc_port()
 
     for br in "${BRIDGE_NAMES[@]}"; do
         local zone="$br"
-        log_debug "[Firewalld] Adding noVNC port 8006/tcp to ${zone} zone"
-        run firewall-cmd \
-        --zone="$zone" \
-        --add-port=8006/tcp
+        if zone_exists "${zone}"; then
+            log_debug "[Firewalld] Adding noVNC port 8006/tcp to ${zone} zone"
+            run firewall-cmd \
+            --zone="$zone" \
+            --add-port=8006/tcp
+        fi
     done
-    log_debug "[Firewalld] Adding noVNC port 8006/tcp to recovery zone"
-        run firewall-cmd \
-        --zone=recovery \
-        --add-port=8006/tcp
-
+    if zone_exists "recovery"; then
+        log_debug "[Firewalld] Adding noVNC port 8006/tcp to recovery zone"
+            run firewall-cmd \
+            --zone=recovery \
+            --add-port=8006/tcp
+    fi
 }
 # -----------------------------------------------------------------------------
 # Create pfVEdge/recovery Zones

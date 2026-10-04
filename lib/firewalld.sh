@@ -348,9 +348,6 @@ generate_profile()
             #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
             if ! has_data; then
                 add_novnc_port
-                run firewall-cmd \
-                --zone="$zone" \
-                --add-port=8006/tcp
             fi
         } || restore_current_firewalld
     } || return 1

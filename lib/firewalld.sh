@@ -152,6 +152,12 @@ create_pfVEdge_fwall_rules()
                 --add-service=ssh
             log_debug "[Firewalld] SSH access allowed on ${zone} zone"
         fi
+        #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
+        if ! has_data; then
+            run firewall-cmd \
+            --zone="$zone" \
+            --add-port=8006/tcp
+        fi
     done
     log_info "[Firewalld] pfVEdge firewall profile applied ✅"
 }

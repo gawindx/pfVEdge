@@ -19,6 +19,7 @@ configure_bridge_ip() {
     local iface_type="$3"
     local ipv4gw="$4"
     local dns="$5"
+    local fwrole="$6"
 
     log_debug \
         "[Bridges] Configure Bridge '$bridge' with address '$ipv4' and Type '$iface_type'"
@@ -65,7 +66,13 @@ configure_bridge_ip() {
                 "$bridge" \
                 ipv4.dns "$dns"
         fi
-
+        if [[ "$fwrole" == "wan" ]]; then
+            log_debug \
+                "[Bridges] Configure Bridge '$bridge' Metric priority with 100 for WAN"
+            run nmcli connection modify \
+                "$bridge" \
+                ipv4..route-metric 100
+        fi
     fi
 
     run nmcli connection modify \
@@ -79,6 +86,7 @@ ensure_bridge() {
     local iface_type="$3"
     local ipv4gw="$4"
     local dns="$5"
+    local fwrole="$6"
 
     if ! bridge_exists "$bridge"; then
         log_debug "[Bridges] Bridge '$bridge' need to be created"
@@ -102,7 +110,8 @@ ensure_bridge() {
         "$ipv4" \
         "$iface_type" \
         "$ipv4gw" \
-        "$dns"
+        "$dns" \
+        "$fwrole" || return 1
 
     # -------------------------------------------------------------------------
     # Configure policy routing directly in the NetworkManager profile.
@@ -132,7 +141,8 @@ create_or_validate_bridges() {
             "${BRIDGE_IPV4[$bridge]}" \
             "${BRIDGE_IFACE_TYPE[$bridge]}" \
             "${BRIDGE_IP_GW[$bridge]}" \
-            "${BRIDGE_IP_DNS[$bridge]}" || return 1
+            "${BRIDGE_IP_DNS[$bridge]}" \
+            "${BRIDGE_FWROLE[$bridge]}" || return 1
         ip link set "$bridge" up
     done
     return 0

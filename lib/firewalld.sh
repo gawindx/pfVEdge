@@ -317,7 +317,12 @@ apply_profile()
     esac
     systemctl start firewalld
     firewall-cmd --reload
+    #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
+    if ! has_data; then
+        add_novnc_port
+    fi
     log_info "Profile applied successfully"
+
 }
 
 # -----------------------------------------------------------------------------
@@ -344,11 +349,6 @@ generate_profile()
                     create_recovery_fwall_rules
                     ;;
             esac
-            firewall-cmd --reload
-            #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
-            if ! has_data; then
-                add_novnc_port
-            fi
         } || restore_current_firewalld
     } || return 1
 }

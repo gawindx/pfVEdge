@@ -71,7 +71,7 @@ configure_bridge_ip() {
                 "[Bridges] Configure Bridge '$bridge' Metric priority with 100 for WAN"
             run nmcli connection modify \
                 "$bridge" \
-                ipv4..route-metric 100
+                ipv4.route-metric 100
         fi
     fi
 

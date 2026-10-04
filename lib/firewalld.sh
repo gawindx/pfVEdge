@@ -97,6 +97,23 @@ zone_exists()
     firewall-cmd --permanent --get-zones | tr ' ' '\n' | grep -Fxq "$zone"
 }
 
+add_novnc_port()
+{
+    local ssh_port
+
+    for br in "${BRIDGE_NAMES[@]}"; do
+        local zone="$br"
+        log_debug "[Firewalld] Adding noVNC port 8006/tcp to ${zone} zone"
+        run firewall-cmd \
+        --zone="$zone" \
+        --add-port=8006/tcp
+    done
+    log_debug "[Firewalld] Adding noVNC port 8006/tcp to recovery zone"
+        run firewall-cmd \
+        --zone=recovery \
+        --add-port=8006/tcp
+
+}
 # -----------------------------------------------------------------------------
 # Create pfVEdge/recovery Zones
 # -----------------------------------------------------------------------------
@@ -151,12 +168,6 @@ create_pfVEdge_fwall_rules()
                 --zone="$zone" \
                 --add-service=ssh
             log_debug "[Firewalld] SSH access allowed on ${zone} zone"
-        fi
-        #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
-        if ! has_data; then
-            run firewall-cmd \
-            --zone="$zone" \
-            --add-port=8006/tcp
         fi
     done
     log_info "[Firewalld] pfVEdge firewall profile applied ✅"
@@ -331,6 +342,13 @@ generate_profile()
                     ;;
             esac
             firewall-cmd --reload
+            #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
+            if ! has_data; then
+                add_novnc_port
+                run firewall-cmd \
+                --zone="$zone" \
+                --add-port=8006/tcp
+            fi
         } || restore_current_firewalld
     } || return 1
 }

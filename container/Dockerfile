@@ -2,6 +2,8 @@
 
 FROM docker.io/qemux/qemu:7.32
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 # ============================================
 # Expose Web UI (noVNC)
 # ============================================

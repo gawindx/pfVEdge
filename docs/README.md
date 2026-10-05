@@ -50,8 +50,8 @@ The firewall VM becomes the filtering point between the configured networks.
 ```text
 pfVEdge/
 ├── config/
-│   ├── bridges.env
-│   └── bridges.env.example
+│   ├── config.json
+│   └── config.json.example
 │
 ├── container/
 │   ├── Dockerfile
@@ -115,37 +115,49 @@ Network bridges are managed through **NetworkManager/nmcli**.
 
 ---
 
-## 4. Configuration (`config/bridges.env`)
+## 4. Configuration
 
-The network topology is declared through `BRIDGES_NETWORKS`, with one entry per bridge.
+pfVEdge uses `config/config.json` as its main configuration file.
+An example configuration is provided:
 
 ```text
-bridge_name:type:interfaces[,interfaces]:ipv4:firewall-role
+config/config.json.example
 ```
 
-| Field           | Description                                                        |
-| --------------- | ------------------------------------------------------------------ |
-| `bridge_name`   | Logical bridge name, automatically prefixed with `br-`             |
-| `type`          | `podman` for a Podman network, otherwise a physical/host interface |
-| `interfaces`    | Host interface(s) attached to the bridge                           |
-| `ipv4`          | Static CIDR, `dhcp`, or empty                                      |
-| `firewall-role` | `wan`, `lan` or `dmz`                                              |
-
-Example:
+Copy it and adapt it to your environment:
 
 ```bash
-BRIDGES_NETWORKS="
-wan:eth:eno1:dhcp::wan
-lan:eth:eno2:10.10.10.1/24:10,20,30:lan
-dmz:podman:net-dmz:10.20.20.1/24::dmz
-"
+cp config/config.json.example config/config.json
 ```
 
-Additional parameters are documented in:
+The configuration defines, among other things:
+* the firewall to use;
+* network settings;
+* bridges and associated interfaces;
+* routing;
+* NetworkManager and firewalld settings.
+
+### Container configuration
+
+QEMU container parameters are defined in:
 
 ```text
-config/bridges.env.example
+config/pfVEdge.defaults.env
 ```
+
+Optional overrides can be provided in:
+
+```text
+config/pfVEdge.override.env
+```
+
+The network information required by QEMU is generated automatically in:
+
+```text
+/run/pfVEdge/network.env
+```
+
+> `config/bridges.env` is no longer used by pfVEdge. New installations must use `config/config.json`.
 
 At least one `wan` and one `lan` bridge are required.
 

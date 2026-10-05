@@ -1,55 +1,144 @@
+```jsonc
 {
+  // ============================================================================
+  // IMPORTANT
+  // ============================================================================
+  // This file is provided as a documented example configuration.
+  //
+  // If you use this file as the base for your pfVEdge configuration, copy it
+  // to "config.json" and remove all comments before starting pfVEdge.
+  //
+  // The "config.json" file must contain valid JSON and therefore must not
+  // contain comments.
+  // ============================================================================
+
+  // Firewall implementation used by pfVEdge.
+  // Supported values: "pfsense" or "opnsense".
   "firewall": "pfsense",
+
+  // Directory used to store pfVEdge backups and persistent data.
   "backup_dir": "/var/lib/pfVEdge",
+
+  // Logging verbosity.
+  // Supported values: "DEBUG", "INFO", "WARNING" or "ERROR".
   "log_level": "INFO",
 
   "network": {
+
+    // Initialize the host network configuration before starting pfVEdge.
+    // WARNING: enabling this option may modify the existing host network
+    // configuration. Use it only when the host network is prepared for
+    // pfVEdge initialization.
     "initialize": false,
 
     "network_manager": {
+
+      // Automatically migrate an existing physical interface to the
+      // NetworkManager configuration managed by pfVEdge.
       "auto_migrate_interface": false,
+
+      // Force creation of a factory backup before modifying NetworkManager
+      // configuration.
       "force_factory_backup": false
     },
 
     "firewalld": {
+
+      // Allow SSH access to the host through the pfVEdge network zones.
+      // This is disabled by default for security reasons.
       "allow_ssh_host": false
     },
 
     "bridges": {
+
+      // WAN bridge.
+      // The physical interface connected to the host's WAN network.
       "br-wan": {
+
+        // Physical interface attached to this bridge.
         "iface": "eth0",
+
+        // Interface type.
+        // Supported values: "eth" for physical interfaces or "podman"
+        // for Podman-managed network interfaces.
         "iface_type": "eth",
+
+        // IPv4 address assigned to the bridge.
         "ipv4": "192.168.1.254/24",
+
+        // Gateway used by the WAN network.
         "gateway": "192.168.1.1",
+
+        // DNS server used by the WAN network.
         "dns": "192.168.1.1",
+
+        // Firewall role associated with this bridge.
         "role": "wan"
       },
 
+      // Physical LAN bridge connected to the host's internal network.
       "br-trunk": {
+
+        // Physical interface attached to this bridge.
         "iface": "eth1",
+
+        // Physical interface type.
         "iface_type": "eth",
+
+        // IPv4 address assigned to the bridge.
         "ipv4": "10.10.1.1/24",
+
+        // Gateway used to route traffic through the virtual firewall.
         "gateway": "10.10.1.2",
+
+        // DNS server used by the LAN network.
         "dns": "10.10.1.2",
+
+        // Firewall role associated with this bridge.
         "role": "lan"
       },
 
+      // Podman LAN bridge.
+      // Used for containers that belong to the internal LAN.
       "br-pod-lan": {
+
+        // Podman network interface attached to this bridge.
         "iface": "pod-lan",
+
+        // Podman interface type.
         "iface_type": "podman",
+
+        // IPv4 address assigned to the bridge.
         "ipv4": "10.250.250.1/24",
+
+        // Firewall role associated with this bridge.
         "role": "lan"
       },
 
+      // Podman DMZ bridge.
+      // Used for containers that belong to the isolated DMZ network.
       "br-pod-dmz": {
+
+        // Podman network interface attached to this bridge.
         "iface": "pod-dmz",
+
+        // Podman interface type.
         "iface_type": "podman",
+
+        // IPv4 address assigned to the bridge.
         "ipv4": "10.254.254.1/24",
+
+        // Firewall role associated with this bridge.
         "role": "dmz"
       }
     },
 
+    // Offset used to calculate the firewall gateway address from the
+    // configured bridge network.
     "gateway_offset": 1,
+
+    // Prefix used when generating QEMU TAP interface names.
     "tap_prefix": "tap"
   }
 }
+```

@@ -168,7 +168,7 @@ check_bridges() {
 
     for bridge in "${BRIDGE_NAMES[@]}"; do
         if ! ip link show "$bridge" &>/dev/null; then
-            error "$bridge does not exist (declared in config/bridges.env)"
+            error "$bridge does not exist (declared in config/config.json)"
             continue
         fi
 

@@ -118,7 +118,7 @@ set_defaults()
     LOG_LEVEL=$(trim "${LOG_LEVEL:-INFO}")
     QEMU_NETWORK_ENV="${QEMU_NETWORK_ENV:-/run/pfVEdge/network.env}"
     INIT_NETWORK="${INIT_NETWORK:-false}"
-    INSTALL_MARKER="/storage/install-done"
+    INSTALL_MARKER="${STORAGE_DIR}/install-done"
 
     # Firewall
     FIREWALL=$(trim "${FIREWALL:-pfsense}")

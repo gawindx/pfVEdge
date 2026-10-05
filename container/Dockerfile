@@ -30,7 +30,12 @@ ENV PF_BOOT="pfsense"
 # TAP INJECTION SUPPORT
 # ============================================
 # Custom TAP handling
+# and disk initialization reporting (auto-detect 
+# of vm installation statut to avoid keeping
+# noVNC open when vm os is installed)
+# ============================================
 COPY ./src/start.sh /run/start.sh
+COPY ./src/disk-monitor.py /run/disk-monitor.py
 
 # ============================================
 # HEALTHCHECK
@@ -40,6 +45,7 @@ COPY ./src/healthcheck/ /healthcheck/
 
 # Optional: ensure scripts executable
 RUN chmod +x /run/start.sh \
+    && chmod +x /run/disk-monitor.py \
     && chmod +x /healthcheck/healthcheck.sh \
     && chmod +x /healthcheck/watchdog.sh
 

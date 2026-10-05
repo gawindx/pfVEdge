@@ -91,58 +91,6 @@ check_firewalld()
 }
 
 # ==========================================
-# Data disk management
-# ==========================================
-
-get_data_disk() {
-    local disk
-
-    for disk in \
-        "$STORAGE_DIR/data.img" \
-        "$STORAGE_DIR/data.qcow2" \
-        "$STORAGE_DIR/data.vmdk" \
-        "$STORAGE_DIR/data.vhd" \
-        "$STORAGE_DIR/data.vhdx" \
-        "$STORAGE_DIR/data.vdi"
-    do
-        if [[ -f "$disk" ]]; then
-            printf '%s\n' "$disk"
-            return 0
-        fi
-    done
-
-    return 1
-}
-
-has_data() {
-    local disk
-    local tmp
-    local bytes=102400
-
-    disk=$(get_data_disk) || return 1
-
-    tmp=$(mktemp) || return 0
-
-    if ! qemu-img dd \
-        -O raw \
-        bs="$bytes" \
-        count=1 \
-        "if=$disk" \
-        "of=$tmp" >/dev/null 2>&1; then
-        rm -f "$tmp"
-        return 0
-    fi
-
-    if cmp -s -n "$bytes" "$tmp" /dev/zero; then
-        rm -f "$tmp"
-        return 1
-    fi
-
-    rm -f "$tmp"
-    return 0
-}
-
-# ==========================================
 # IP management
 # ==========================================
 

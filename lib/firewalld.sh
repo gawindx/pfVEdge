@@ -318,7 +318,8 @@ apply_profile()
     systemctl start firewalld
     firewall-cmd --reload
     #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
-    if ! has_data; then
+    [[ -f "$INSTALL_MARKER" ]] && return 0
+    if [[ ! -f "$INSTALL_MARKER" ]]; then
         add_novnc_port
     fi
     log_info "Profile applied successfully"

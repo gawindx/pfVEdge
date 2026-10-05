@@ -5,6 +5,34 @@ log()   { echo "[pfVEdge][INFO] $*"; }
 warn()  { echo "[pfVEdge][WARN] $*" >&2; }
 error() { echo "[pfVEdge][ERROR] $*" >&2; }
 
+INSTALL_MARKER="/storage/install-done"
+
+waitForInstallDisk() {
+    [[ -f "$INSTALL_MARKER" ]] && return 0
+
+    local disk=""
+    local timeout=120
+    local elapsed=0
+
+    while [[ -z "$disk" && "$elapsed" -lt "$timeout" ]]; do
+        disk="$(find /storage -type f \
+            \( -iname "data.img" -o -iname "data.qcow2" \) \
+            -print -quit 2>/dev/null)"
+        if [[ -n "$disk" ]]; then
+            break
+        fi
+        sleep 1
+        ((elapsed++))
+    done
+    if [[ -z "$disk" ]]; then
+        echo "[pfVEdge-install-watcher] Disk not found after ${timeout}s"
+        return 0
+    fi
+    [[ -f "$INSTALL_MARKER" ]] && return 0
+    echo "[pfVEdge-install-watcher] Disk found: $disk"
+    python3 "/run/disk-monitor.py" "$disk" "$INSTALL_MARKER" &
+}
+
 RAM_SIZES=${RAM_SIZES:-4G}
 CPU_CORES=${CPU_CORES:-2}
 ENV_FILE="/tmp/qemu-tap-pfVEdge.env"
@@ -168,4 +196,5 @@ else
     warn "Watchdog not found or not executable"
 fi
 
+waitForInstallDisk &
 return 0

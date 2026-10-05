@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM docker.io/qemux/qemu:7.32
+FROM docker.io/qemux/qemu:7.50
 
 ENV DEBIAN_FRONTEND=noninteractive
 

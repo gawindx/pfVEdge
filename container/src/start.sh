@@ -13,7 +13,7 @@ waitForInstallDisk() {
         return 0
     }
     local disk=""
-    local timeout=120
+    local timeout=240
     local elapsed=0
 
     while [[ -z "$disk" && "$elapsed" -lt "$timeout" ]]; do
@@ -24,13 +24,12 @@ waitForInstallDisk() {
             break
         fi
         sleep 1
-        ((elapsed++))
+        elapsed=$((elapsed + 1))
     done
     if [[ -z "$disk" ]]; then
         echo "[pfVEdge-install-watcher] Disk not found after ${timeout}s"
         return 0
     fi
-    [[ -f "$INSTALL_MARKER" ]] && return 0
     echo "[pfVEdge-install-watcher] Disk found: $disk"
     python3 "/run/disk-monitor.py" "$disk" "$INSTALL_MARKER" &
 }

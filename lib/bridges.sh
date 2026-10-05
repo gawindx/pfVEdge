@@ -141,7 +141,7 @@ create_or_validate_bridges() {
             "${BRIDGE_IPV4[$bridge]}" \
             "${BRIDGE_IFACE_TYPE[$bridge]}" \
             "${BRIDGE_IP_GW[$bridge]}" \
-            "${BRIDGE_IP_DNS[$bridge]}" \
+            "${BRIDGE_DNS[$bridge]}" \
             "${BRIDGE_FWROLE[$bridge]}" || return 1
         ip link set "$bridge" up
     done

@@ -64,7 +64,7 @@ parse_json_bridges()
     declare -gA BRIDGE_IFACES
     declare -gA BRIDGE_IPV4
     declare -gA BRIDGE_IP_GW
-    declare -gA BRIDGE_IP_DNS
+    declare -gA BRIDGE_DNS
     declare -gA BRIDGE_FWROLE
     declare -ga BRIDGE_NAMES
 
@@ -186,7 +186,7 @@ parse_json_bridges()
         BRIDGE_IFACES["$bridge"]="$iface"
         BRIDGE_IPV4["$bridge"]="$ipv4"
         BRIDGE_IP_GW["$bridge"]="$gateway"
-        BRIDGE_IP_DNS["$bridge"]="$dns"
+        BRIDGE_DNS["$bridge"]="$dns"
         BRIDGE_FWROLE["$bridge"]="$role"
 
         log_debug \

@@ -8,8 +8,10 @@ error() { echo "[pfVEdge][ERROR] $*" >&2; }
 INSTALL_MARKER="/storage/install-done"
 
 waitForInstallDisk() {
-    [[ -f "$INSTALL_MARKER" ]] && return 0
-
+    [[ -f "$INSTALL_MARKER" ]] && {
+        echo "[pfVEdge-install-watcher] Install marker found, skipping disk monitoring"
+        return 0
+    }
     local disk=""
     local timeout=120
     local elapsed=0

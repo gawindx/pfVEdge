@@ -242,6 +242,7 @@ def main():
     marker = sys.argv[2]
 
     if os.path.exists(marker):
+        log(f"Installation marker already exists: {marker}")
         return 0
 
     log(f"Watching disk: {disk}")

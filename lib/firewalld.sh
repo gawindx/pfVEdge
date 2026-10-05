@@ -320,6 +320,7 @@ apply_profile()
     #Check if data disk is presentand has data, if not allow port 8006 for noVNC WebUI
     [[ -f "$INSTALL_MARKER" ]] && return 0
     if [[ ! -f "$INSTALL_MARKER" ]]; then
+        log_info "[Firewalld] Installation marker not found, allowing noVNC port"
         add_novnc_port
     fi
     log_info "Profile applied successfully"

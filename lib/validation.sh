@@ -43,6 +43,7 @@ validate_iface_type() {
 validate_ipv4() {
     local ipv4="$1"
     local iface_type="$2"
+    local bridge="$3"
 
     log_debug "[Validate] Receive '$ipv4' as IPV4 and '$iface_type' as iface_type"
     [[ "$ipv4" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || {

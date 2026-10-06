@@ -138,7 +138,7 @@ parse_json_bridges()
         # --------------------------------------------------------
 
         if [[ -n "$ipv4" ]]; then
-            validate_ipv4 "$ipv4" "$iface_type"
+            validate_ipv4 "$ipv4" "$iface_type" "$bridge"
         elif [[ "$iface_type" == "podman" ]]; then
             log_error "[Parser] Podman bridge '$bridge' must have a static IPv4"
             exit "$E_VALIDATION"

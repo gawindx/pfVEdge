@@ -55,8 +55,6 @@ check_prerequisites()
         bridge
         firewall-cmd
         jq
-        ss
-        sshd
         sysctl
     )
 

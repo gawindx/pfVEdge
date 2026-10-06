@@ -120,9 +120,6 @@ set_defaults()
     INIT_NETWORK="${INIT_NETWORK:-false}"
     INSTALL_MARKER="${STORAGE_DIR}/install-done"
 
-    # Firewall
-    FIREWALL=$(trim "${FIREWALL:-pfsense}")
-
     # Bridges
     BRIDGES_MANAGE_FIREWALL=$(trim "${BRIDGES_MANAGE_FIREWALL:-true}")
 

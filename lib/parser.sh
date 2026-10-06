@@ -18,7 +18,6 @@ load_json_config()
     fi
     log_info "[Parser] Loading configuration: $config_file"
     {
-        IFS= read -r -d '' FIREWALL
         IFS= read -r -d '' BACKUP_DIR
         IFS= read -r -d '' LOG_LEVEL
         IFS= read -r -d '' NET_INIT
@@ -30,7 +29,6 @@ load_json_config()
     } < <(
         jq -j '
             [
-                (.firewall // "pfsense"),
                 (.backup_dir // "/var/lib/pfVEdge"),
                 (.log_level // "info"),
                 (.network.initialize // false),
@@ -159,15 +157,6 @@ parse_json_bridges()
 validate_config()
 {
     log_info "[Parser] Validating configuration"
-
-    case "$FIREWALL" in
-        pfsense|opnsense)
-            ;;
-        *)
-            log_error "[Parser] Invalid firewall: '$FIREWALL'"
-            return 1
-            ;;
-    esac
 
     validate_boolean "$NET_INIT" "network.initialize" || return 1
     validate_boolean \

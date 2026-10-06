@@ -71,12 +71,6 @@ migrate_configuration()
     tap_prefix="${TAP_PREFIX:-tap}"
     bridges_networks="${BRIDGES_NETWORKS:-}"
 
-    local firewall="pfsense"
-
-    if [[ -n "${FIREWALL:-}" ]]; then
-        firewall="$FIREWALL"
-    fi
-
     local tmp_file
     tmp_file="$(mktemp)"
 

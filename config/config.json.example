@@ -12,10 +12,6 @@
   // contain comments.
   // ============================================================================
 
-  // Firewall implementation used by pfVEdge.
-  // Supported values: "pfsense" or "opnsense".
-  "firewall": "pfsense",
-
   // Directory used to store pfVEdge backups and persistent data.
   "backup_dir": "/var/lib/pfVEdge",
 

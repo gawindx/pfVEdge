@@ -371,6 +371,9 @@ This mechanism is deliberately **not managed through NetworkManager**.
 
 It is a service-specific runtime workaround implemented through systemd `ExecStartPre` commands.
 
+I encountered this situation when running an application who is dialoguing with only the first 
+interface and no option for binding. This workaround force packet to be routed via pfVEdge.
+
 The distinction is:
 
 | Mechanism                     | Scope                        | Persistence                |

@@ -51,31 +51,44 @@ The firewall VM becomes the filtering point between the configured networks.
 pfVEdge/
 ├── config/
 │   ├── config.json
-│   └── config.json.example
+│   ├── config.json.example
+│   └── pfVEdge.defaults.env
 │
 ├── container/
 │   ├── Dockerfile
+│   ├── license.md
+│   ├── README.md
 │   └── src/
+│       ├── disk-monitor.py
 │       ├── start.sh
 │       └── healthcheck/
+│           ├── healthcheck.sh
+│           └── watchdog.sh
+├── docs/
+│   ├── configuration.md
+│   ├── container.md
+│   ├── delayedstart.md
+│   ├── installation.md
+│   ├── README.md
+│   └── routing.md
 │
 ├── lib/
-│   ├── init.sh
-│   ├── constants.sh
-│   ├── parser.sh
-│   ├── validation.sh
 │   ├── bridges.sh
-│   ├── ports.sh
-│   ├── taps.sh
-│   ├── networkmanager.sh
-│   ├── routing.sh
+│   ├── constants.sh
 │   ├── firewalld.sh
+│   ├── init.sh
 │   ├── logging.sh
-│   └── utils.sh
+│   ├── networkmanager.sh
+│   ├── parser.sh
+│   ├── ports.sh
+│   ├── routing.sh
+│   ├── taps.sh
+│   ├── utils.sh
+│   └── validation.sh
 │
 ├── scripts/
-│   ├── qemu-networks.sh
 │   ├── firewalld-profile.sh
+│   ├── qemu-networks.sh
 │   ├── restore-nmcli.sh
 │   └── validate-full-stack.sh
 │
@@ -84,20 +97,16 @@ pfVEdge/
 │       ├── containers/systemd/
 │       │   └── pfVEdge.container
 │       └── systemd/system/
-│           ├── pfVEdge.target
+│           ├── DelayedStart@.timer
 │           ├── pfVEdge-bridges.service
-│           └── pfVEdge-recovery.service
-│
-├── docs/
-│   ├── README.md
-│   ├── routing.md
-│   ├── delayedstart.md
-│   └── containers.md
+│           ├── pfVEdge-recovery.service
+│           └── pfVEdge.target
 │
 ├── deploy.sh
-├── upgrade.sh
+├── license.md
+├── README.md
 ├── undeploy.sh
-└── license.md
+└── upgrade.sh
 ```
 
 ---
@@ -129,6 +138,8 @@ Copy it and adapt it to your environment:
 ```bash
 cp config/config.json.example config/config.json
 ```
+
+Note that all comments MUST be removed from config.json before running pfVEdge.target
 
 The configuration defines, among other things:
 * the firewall to use;
@@ -163,13 +174,30 @@ At least one `wan` and one `lan` bridge are required.
 
 ---
 
-## 5. Deployment
+## 5. Installation and Deployment
 
-Run:
+### Installation
+
+pfVEdge is installed directly from its Git repository.
+
+For the complete installation procedure, including prerequisites, network configuration, deployment, and initial VM installation, see the [Installation Guide](./installation.md).
+
+#### Quick installation
+
+```bash
+sudo mkdir -p /opt/pfVEdge
+sudo chown "$USER":"$USER" /opt/pfVEdge
+git clone https://github.com/gawindx/pfVEdge.git /opt/pfVEdge
+cd /opt/pfVEdge
+```
+
+Prepare `config/config.json`, then run:
 
 ```bash
 sudo ./deploy.sh
 ```
+
+See [Configuration](./configuration.md) for the available configuration options.
 
 The deployment process:
 
@@ -186,11 +214,27 @@ Start pfVEdge with:
 sudo systemctl start pfVEdge.target
 ```
 
-### Upgrade
+---
+
+### Upgrading
+
+An existing pfVEdge installation is upgraded directly from the Git repository:
 
 ```bash
+cd /opt/pfVEdge
+git pull
 sudo ./upgrade.sh
 ```
+
+`git pull` retrieves the new project version and `upgrade.sh` applies any changes required by the new version to the existing installation.
+
+Before upgrading, check for local changes:
+
+```bash
+git status
+```
+
+Do not use `git reset --hard` without first reviewing local changes, as it can permanently remove them.
 
 The upgrade script rebuilds the image when required, restarts the stack, validates it and can automatically roll back if validation fails.
 
@@ -297,8 +341,8 @@ BindsTo=pfVEdge.service
 Image=registry/container/example:latest
 ContainerName=container_name
 
-Network=br-pod-dmz
-IP=10.20.20.10
+Network=name-of-lan-or-dmz-network-bridge
+IP=IP.OF.CUSTOM.CONTAINER
 
 HealthCmd=/path/to/healthcheck
 HealthInterval=30s
@@ -317,9 +361,9 @@ WantedBy=pfVEdge.target
 
 For a service started through `DelayedStart@`, the service itself must not contain an `[Install]` section that independently enables it under `pfVEdge.target`.
 
-See [`delayedstart.md`](delayedstart.md) for the delayed-start model.
+See [`delayedstart.md`](./delayedstart.md) for the delayed-start model.
 
-For details specific to the QEMU/pfVEdge container, see [`container.md`](container.md).
+For details specific to the QEMU/pfVEdge container, see [`container.md`](./container.md).
 
 ---
 
@@ -329,7 +373,7 @@ The automatic routing system is documented separately because it covers both Net
 
 See:
 
-**[`routing.md`](routing.md)**
+**[`routing.md`](./routing.md)**
 
 The important distinction is:
 
@@ -403,9 +447,9 @@ Set in `config/bridges.env`:
 LOG_LEVEL=DEBUG
 ```
 
-For routing-specific diagnostics, see [`routing.md`](routing.md).
+For routing-specific diagnostics, see [`routing.md`](./routing.md).
 
-For QEMU, TAP injection, healthcheck and watchdog troubleshooting, see [`container.md`](container.md).
+For QEMU, TAP injection, healthcheck and watchdog troubleshooting, see [`container.md`](./container.md).
 
 ---
 

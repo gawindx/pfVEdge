@@ -358,8 +358,8 @@ configure_lan_rule()
 # -----------------------------------------------------------------------------
 # Remove legacy pfVEdge kernel routing state
 #
-# This is intentionally kept only as a migration/cleanup step.
-# Runtime routing is no longer managed with ip route/ip rule.
+# Clean up legacy routing rules from pre-v0.4 installations.
+# Kept for backward compatibility; planned for removal in v0.5.
 # -----------------------------------------------------------------------------
 
 cleanup_legacy_routing()

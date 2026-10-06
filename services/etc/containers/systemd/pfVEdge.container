@@ -28,7 +28,7 @@ Environment=NETWORK=N
 # Without qemu has no network and no internet for download BOOT_IMG
 # and need to be host because tap/bridge need same namespace in host and qemu
 Network=host
-DNS=8.8.8.8
+DNS=9.9.9.9
 
 AddCapability=NET_ADMIN
 AddDevice=/dev/vhost-net

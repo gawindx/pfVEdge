@@ -76,7 +76,6 @@ migrate_configuration()
 
     if ! {
         printf '{\n'
-        printf '  "firewall": %s,\n' "$(jq -Rn --arg v "$firewall" '$v')"
         printf '  "backup_dir": %s,\n' "$(jq -Rn --arg v "$backup_dir" '$v')"
         printf '  "log_level": %s,\n' "$(jq -Rn --arg v "$log_level" '$v')"
         printf '  "network": {\n'

@@ -206,7 +206,7 @@ create_recovery_fwall_rules()
         --add-port="$ssh_port"/tcp \
         --add-service=ssh
     # ICMP useful for diagnostics
-    log_debug "[Firewalld] add ICMP for diagnostics" 
+    log_debug "[Firewalld] add ICMP for diagnostics"
     run firewall-cmd \
         --permanent \
         --zone="$zone" \

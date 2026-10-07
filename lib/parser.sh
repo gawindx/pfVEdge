@@ -38,7 +38,7 @@ load_json_config()
                 (.network.gateway_offset // 1),
                 (.network.tap_prefix // "tap")
             ]
-            | map(. + "\u0000")
+            | map(tostring + "\u0000")
             | add
         ' "$config_file"
     )
@@ -140,7 +140,7 @@ parse_json_bridges()
                 (.value.dns // ""),
                 (.value.role // "")
             ]
-            | map(. + "\u0000")
+            | map(tostring + "\u0000")
             | add
         ' "$config_file"
     )

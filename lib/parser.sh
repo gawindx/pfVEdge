@@ -183,8 +183,6 @@ validate_config()
         log_error "[Parser] Invalid tap_prefix: '$TAP_PREFIX'"
         return 1
     fi
-
-    validate_bridges
 }
 
 # ============================================================

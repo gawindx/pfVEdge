@@ -66,18 +66,15 @@ _nm_backup()
 _nm_factory_exists()
 {
     [[ -d "$NM_BACKUP_FACTORY" ]] || return 1
-    #
-    # Empty factory backup
-    #
-    [[ -f "$NM_BACKUP_FACTORY/empty.conf" ]] && return 0
-    #
-    # Standard backup
-    #
-    find "$NM_BACKUP_FACTORY" \
-        -maxdepth 1 \
-        -type f \
-        -name "*.nmconnection" \
-        | grep -q .
+    [[ -f "${NM_BACKUP_FACTORY}/empty.conf" ]] && return 0
+
+    local profile
+
+    for profile in "${NM_BACKUP_FACTORY}"/*.nmconnection; do
+        [[ -f "$profile" ]] && return 0
+    done
+
+    return 1
 }
 
 # -------------------------------------------------------------------
@@ -86,41 +83,36 @@ _nm_factory_exists()
 
 _nm_backup_factory()
 {
-    local destination="$NM_BACKUP_FACTORY"
-
-    if _nm_factory_exists; then
-        if [[ "$NM_FORCE_FACTORY_BACKUP" != "true" ]]; then
-            log_info "[NM] Factory backup already exists"
-            return 0
-        fi
-        log_warn "[NM] Replacing factory backup"
-        rm -rf "$destination"
+    log_info "[NetworkManager] Creating factory backup"
+    mkdir -p "$NM_BACKUP_FACTORY" || {
+        log_error "[NetworkManager] Unable to create factory backup directory: $NM_BACKUP_FACTORY"
+        return 1
+    }
+    rm -f "${NM_BACKUP_FACTORY}"/* || {
+        log_error "[NetworkManager] Unable to clean factory backup directory"
+        return 1
+    }
+    local profiles=(
+        "${NM_CONNECTION_DIR}"/*.nmconnection
+    )
+    if [[ ! -e "${profiles[0]}" ]]; then
+        log_info "[NetworkManager] No NetworkManager connection profile found"
+        log_info "[NetworkManager] Creating empty factory backup marker"
+        touch "${NM_BACKUP_FACTORY}/empty.conf" || {
+            log_error "[NetworkManager] Unable to create empty factory backup marker"
+            return 1
+        }
+        log_info "[NetworkManager] empty factory backup marker created successfully"
+    else
+        log_info "[NetworkManager] Saving NetworkManager connection profiles"
+        cp -- "${profiles[@]}" "$NM_BACKUP_FACTORY/" || {
+            log_error "[NetworkManager] Unable to copy NetworkManager connection profiles"
+            return 1
+        }
+        log_info "[NetworkManager] Factory backup created successfully"
     fi
-    mkdir -p "$destination"
-    log_debug "[NM] Backing up NetworkManager to $destination"
-    log_debug "[NM] Source: $NM_CONNECTION_DIR"
-    log_debug "[NM] Connection files:"
-
-    # ----------------------------------------------------------------------
-    # No NetworkManager configuration
-    # ----------------------------------------------------------------------
-
-    if ! find "$NM_CONNECTION_DIR" \
-        -maxdepth 1 \
-        -type f \
-        -name "*.nmconnection" \
-        | grep -q .
-    then
-        log_debug "[NM] No NetworkManager configuration found"
-        touch "$destination/empty.conf"
-        log_info "[NM] Factory backup created (empty configuration)"
-        return 0
-    fi
-    find "$NM_CONNECTION_DIR" -type f -name "*.nmconnection" | while read -r file; do
-        log_debug "[NM]   - $file"
-    done
-    cp -a "${NM_CONNECTION_DIR}/." "$destination/"
-    log_info "[NM] Factory backup created"
+    selinux_rcon "$NM_BACKUP_FACTORY/"
+    return 0
 }
 
 # -------------------------------------------------------------------
@@ -129,7 +121,19 @@ _nm_backup_factory()
 
 nm_backup_factory()
 {
-    _nm_backup_factory
+    if _nm_factory_exists; then
+        log_info "[NetworkManager] Factory backup already exists: $NM_BACKUP_FACTORY"
+        log_info "[NetworkManager] Existing factory backup will be preserved"
+        return 0
+    fi
+    log_info "[NetworkManager] No factory backup found"
+    log_info "[NetworkManager] Creating initial NetworkManager factory backup"
+    if ! _nm_backup_factory; then
+        log_error "[NetworkManager] Failed to create factory backup"
+        return 1
+    fi
+    log_info "[NetworkManager] Initial NetworkManager factory backup is ready"
+    return 0
 }
 
 nm_backup_stable()
@@ -173,20 +177,74 @@ _nm_restore()
 
 nm_restore_factory()
 {
-    if [[ -f "$NM_BACKUP_FACTORY/empty.conf" ]]; then
-        log_warn "[NM] Restoring empty NetworkManager configuration"
-        systemctl stop NetworkManager
-        rm -f "${NM_CONNECTION_DIR}"/*
-        nm_reload
-        if nm_has_bridges; then
-            nm_remove_bridges
-        fi
-        nm_update_hash
-        log_info "[NM] Restore completed"
-        return 0
-    else
-        _nm_restore "$NM_BACKUP_FACTORY"
+    log_info "[NetworkManager] Starting factory configuration restore"
+    if ! _nm_factory_exists; then
+        log_error "[NetworkManager] Factory backup does not exist: $NM_BACKUP_FACTORY"
+        return 1
     fi
+    log_info "[NetworkManager] Factory backup found: $NM_BACKUP_FACTORY"
+    if [[ -f "${NM_BACKUP_FACTORY}/empty.conf" ]]; then
+        log_info "[NetworkManager] Factory backup contains no NetworkManager connection profiles"
+        log_info "[NetworkManager] Stopping NetworkManager"
+        if ! systemctl stop NetworkManager; then
+            log_error "[NetworkManager] Failed to stop NetworkManager"
+            return 1
+        fi
+        log_info "[NetworkManager] Removing current NetworkManager connection profiles"
+        if ! find "$NM_CONNECTION_DIR" -maxdepth 1 -type f -name '*.nmconnection' -delete; then
+            log_error "[NetworkManager] Failed to remove current NetworkManager connection profiles"
+            systemctl start NetworkManager || true
+            return 1
+        fi
+    else
+        log_info "[NetworkManager] Factory backup contains NetworkManager connection profiles"
+
+        log_info "[NetworkManager] Stopping NetworkManager"
+        if ! systemctl stop NetworkManager; then
+            log_error "[NetworkManager] Failed to stop NetworkManager"
+            return 1
+        fi
+
+        log_info "[NetworkManager] Removing current NetworkManager connection profiles"
+
+        if ! find "$NM_CONNECTION_DIR" -maxdepth 1 -type f -name '*.nmconnection' -delete; then
+            log_error "[NetworkManager] Failed to remove current NetworkManager connection profiles"
+            systemctl start NetworkManager || true
+            return 1
+        fi
+
+        log_info "[NetworkManager] Restoring factory connection profiles"
+
+        if ! cp -- "${NM_BACKUP_FACTORY}"/*.nmconnection "$NM_CONNECTION_DIR/"; then
+            log_error "[NetworkManager] Failed to restore factory connection profiles"
+            systemctl start NetworkManager || true
+            return 1
+        fi
+        log_info "[NetworkManager] Restoring NetworkManager connection permissions"
+        if ! chmod 600 "${NM_CONNECTION_DIR}"/*.nmconnection; then
+            log_error "[NetworkManager] Failed to set NetworkManager connection permissions"
+            systemctl start NetworkManager || true
+            return 1
+        fi
+    fi
+    log_info "[NetworkManager] Restoring SELinux context"
+    selinux_rcon "$NM_CONNECTION_DIR/"
+    log_info "[NetworkManager] Starting NetworkManager"
+    if ! systemctl start NetworkManager; then
+        log_error "[NetworkManager] Failed to start NetworkManager"
+        return 1
+    fi
+    if ! nm_wait_ready 30; then
+        log_error "[NetworkManager] NetworkManager did not become ready after factory restore"
+        return 1
+    fi
+    log_info "[NetworkManager] Reloading NetworkManager connections"
+    if ! nmcli connection reload; then
+        log_error "[NetworkManager] Failed to reload NetworkManager connections"
+        return 1
+    fi
+    log_info "[NetworkManager] Factory configuration restored successfully"
+    return 0
 }
 
 nm_restore_stable()

@@ -136,6 +136,8 @@ set_defaults()
     NM_CONNECTION_DIR="/etc/NetworkManager/system-connections"
     NM_FORCE_FACTORY_BACKUP="${NM_FORCE_FACTORY_BACKUP:-false}"
     NM_HASH_FILE="${NM_BACKUP_DIR}/current.sha256"
+    NM_CHECKPOINT_TIMEOUT=300
+    NM_CHECKPOINT=""
 
     # Routes
     # Routing tables reserved for pfVEdge.

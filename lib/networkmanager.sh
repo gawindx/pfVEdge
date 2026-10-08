@@ -338,3 +338,93 @@ nm_has_bridges()
     nmcli -t -f TYPE connection show \
         | grep -qx "bridge"
 }
+
+# -------------------------------------------------------------------
+# Create checkpoint for secure rollback
+# -------------------------------------------------------------------
+
+nm_checkpoint_create()
+{
+    local checkpoint
+
+    log_info "[NetworkManager] Creating global checkpoint"
+    log_info "[NetworkManager] Checkpoint rollback timeout: ${NM_CHECKPOINT_TIMEOUT}s"
+    checkpoint="$(
+        busctl call \
+            org.freedesktop.NetworkManager \
+            /org/freedesktop/NetworkManager \
+            org.freedesktop.NetworkManager \
+            CheckpointCreate \
+            aouu \
+            0 \
+            "$NM_CHECKPOINT_TIMEOUT" \
+            6
+    )" || {
+        log_error "[NetworkManager] Failed to create NetworkManager checkpoint"
+        return 1
+    }
+    NM_CHECKPOINT="${checkpoint##* }"
+    if [[ -z "$NM_CHECKPOINT" ]]; then
+        log_error "[NetworkManager] NetworkManager returned an empty checkpoint path"
+        return 1
+    fi
+    log_info "[NetworkManager] Global checkpoint created: $NM_CHECKPOINT"
+    return 0
+}
+
+# -------------------------------------------------------------------
+# Rollback checkpoint
+# -------------------------------------------------------------------
+
+nm_checkpoint_rollback()
+{
+    local result
+
+    if [[ -z "$NM_CHECKPOINT" ]]; then
+        log_error "[NetworkManager] No NetworkManager checkpoint is active"
+        return 1
+    fi
+    log_info "[NetworkManager] Rolling back NetworkManager checkpoint: $NM_CHECKPOINT"
+    if ! result="$(
+        busctl call \
+            org.freedesktop.NetworkManager \
+            /org/freedesktop/NetworkManager \
+            org.freedesktop.NetworkManager \
+            CheckpointRollback \
+            o \
+            "$NM_CHECKPOINT"
+    )"; then
+        log_error "[NetworkManager] Failed to rollback NetworkManager checkpoint"
+        return 1
+    fi
+    log_info "[NetworkManager] NetworkManager checkpoint rollback completed"
+    log_debug "[NetworkManager] Checkpoint rollback result: $result"
+    NM_CHECKPOINT=""
+    return 0
+}
+
+# -------------------------------------------------------------------
+# Destroy checkpoint
+# -------------------------------------------------------------------
+
+nm_checkpoint_destroy()
+{
+    if [[ -z "$NM_CHECKPOINT" ]]; then
+        log_debug "[NetworkManager] No NetworkManager checkpoint to destroy"
+        return 0
+    fi
+    log_info "[NetworkManager] Destroying NetworkManager checkpoint: $NM_CHECKPOINT"
+    if ! busctl call \
+        org.freedesktop.NetworkManager \
+        /org/freedesktop/NetworkManager \
+        org.freedesktop.NetworkManager \
+        CheckpointDestroy \
+        o \
+        "$NM_CHECKPOINT" > /dev/null; then
+        log_error "[NetworkManager] Failed to destroy NetworkManager checkpoint"
+        return 1
+    fi
+    NM_CHECKPOINT=""
+    log_info "[NetworkManager] NetworkManager checkpoint destroyed"
+    return 0
+}

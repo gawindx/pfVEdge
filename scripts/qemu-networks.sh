@@ -29,7 +29,7 @@ log_info "[Network] Starting qemu network preparation"
 log_info "[Network] Checking factory backup"
 nm_backup_factory
 log_info "[Network] Creating transaction backup"
-nm_backup_transaction
+nm_checkpoint_create
 
 # ============================================================
 # NetworkManager preparation
@@ -78,9 +78,9 @@ set_mtu
 log_info "[Network] Applying sysctl"
 apply_sysctl
 log_info "[Network] Verify if User's config exists"
-[[ ! -d "$(profile_path recovery)" ]] && \
-    log_info "[Network] User's config missing, create it!"
-save_profile
+#[[ ! -d "$(profile_path recovery)" ]] && \
+#    log_info "[Network] User's config missing, create it!"
+#save_profile
 
 # ============================================================
 # Firewalld
@@ -96,7 +96,8 @@ configure_firewall pfVEdge
 if ! validate_bridges
 then
     log_error "[Network] Bridge validation failed"
-    nm_restore_transaction
+#    nm_restore_transaction
+    nm_checkpoint_rollback
     exit 1
 fi
 
@@ -109,7 +110,7 @@ log_info "[Network] Creating TAP interfaces"
 if ! create_taps
 then
     log_error "[Network] TAP creation failed"
-    nm_restore_transaction
+    nm_checkpoint_rollback
     exit 1
 fi
 
@@ -117,7 +118,7 @@ if ! validate_taps
 then
     log_error "[Network] TAP validation failed"
     cleanup_taps
-    nm_restore_transaction
+    nm_checkpoint_rollback
     exit 1
 fi
 
@@ -125,8 +126,9 @@ fi
 # Commit
 # ============================================================
 
-log_info "[Network] Saving stable configuration"
-nm_backup_stable
+#log_info "[Network] Saving stable configuration"
+#nm_backup_stable
+nm_checkpoint_destroy
 
 # ============================================================
 # Export QEMU environment

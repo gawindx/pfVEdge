@@ -2,6 +2,29 @@
 
 All notable changes to pfVEdge are documented in this file.
 
+
+## [0.5b.1] - 2026-10-09
+
+### Changed
+
+* Simplified NetworkManager configuration management and network initialization.
+* Simplified factory backup and restoration of NetworkManager connection profiles.
+* Replaced automatic NetworkManager migration with direct application of the configured network settings.
+* Simplified NetworkManager service restart and connection profile reload handling.
+
+### Improved
+
+* Added NetworkManager checkpoints to protect network connectivity during configuration changes.
+* Improved checkpoint cleanup by handling checkpoints that no longer exist.
+* Improved rollback handling when network configuration fails.
+* Improved logging for NetworkManager backup, restoration, checkpoint management, and rollback operations.
+
+### Fixed
+
+* Avoided unnecessary NetworkManager connection reloads after service restarts.
+* Improved handling of empty factory backups.
+* Prevented checkpoint cleanup from failing when the checkpoint has already disappeared.
+
 ## [0.4.0] - 2026-10-06
 
 ### Changed

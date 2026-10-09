@@ -42,11 +42,6 @@ if [[ "${NET_INIT}" == "true" || ! -e "${NET_STATE_FILE}" ]]; then
     INIT_NETWORK=true
 fi
 
-if [[ "${INIT_NETWORK}" == "true" ]]; then
-    log_info "[Network] Reset NetworkManager"
-    nm_reset
-fi
-
 # ============================================================
 # Routing preparation
 #

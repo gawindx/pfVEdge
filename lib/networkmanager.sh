@@ -277,7 +277,7 @@ nm_checkpoint_create()
     log_info "[NetworkManager] Creating global checkpoint"
     log_info "[NetworkManager] Checkpoint rollback timeout: ${NM_CHECKPOINT_TIMEOUT}s"
     checkpoint="$(
-        busctl call \
+        busctl --system call \
             org.freedesktop.NetworkManager \
             /org/freedesktop/NetworkManager \
             org.freedesktop.NetworkManager \
@@ -290,12 +290,14 @@ nm_checkpoint_create()
         log_error "[NetworkManager] Failed to create NetworkManager checkpoint"
         return 1
     }
-    NM_CHECKPOINT="${checkpoint##* }"
+    NM_CHECKPOINT="${checkpoint#o }"
+    NM_CHECKPOINT="${NM_CHECKPOINT#\"}"
+    NM_CHECKPOINT="${NM_CHECKPOINT%\"}"
     if [[ -z "$NM_CHECKPOINT" ]]; then
         log_error "[NetworkManager] NetworkManager returned an empty checkpoint path"
         return 1
     fi
-    log_info "[NetworkManager] Global checkpoint created: $NM_CHECKPOINT"
+    log_info "[NetworkManager] Global checkpoint created: '$NM_CHECKPOINT'"
     return 0
 }
 
@@ -313,7 +315,7 @@ nm_checkpoint_rollback()
     fi
     log_info "[NetworkManager] Rolling back NetworkManager checkpoint: $NM_CHECKPOINT"
     if ! result="$(
-        busctl call \
+        busctl --system call \
             org.freedesktop.NetworkManager \
             /org/freedesktop/NetworkManager \
             org.freedesktop.NetworkManager \
@@ -336,12 +338,31 @@ nm_checkpoint_rollback()
 
 nm_checkpoint_destroy()
 {
+    local checkpoints
+
     if [[ -z "$NM_CHECKPOINT" ]]; then
         log_debug "[NetworkManager] No NetworkManager checkpoint to destroy"
         return 0
     fi
+    log_info "[NetworkManager] Checking NetworkManager checkpoint: $NM_CHECKPOINT"
+    if ! checkpoints="$(
+        busctl get-property \
+            --system \
+            org.freedesktop.NetworkManager \
+            /org/freedesktop/NetworkManager \
+            org.freedesktop.NetworkManager \
+            Checkpoints
+    )"; then
+        log_error "[NetworkManager] Unable to retrieve active checkpoints"
+        return 1
+    fi
+    if [[ "$checkpoints" != *"\"$NM_CHECKPOINT\""* ]]; then
+        log_warn "[NetworkManager] Checkpoint no longer exists; skipping destruction"
+        NM_CHECKPOINT=""
+        return 0
+    fi
     log_info "[NetworkManager] Destroying NetworkManager checkpoint: $NM_CHECKPOINT"
-    if ! busctl call \
+    if ! busctl --system call \
         org.freedesktop.NetworkManager \
         /org/freedesktop/NetworkManager \
         org.freedesktop.NetworkManager \

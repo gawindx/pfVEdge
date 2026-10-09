@@ -11,7 +11,7 @@ init "$@"
 main()
 {
     log_info "Restoring user NetworkManager configuration"
-    if ! nm_restore_factory; then
+    if ! nm_restore_backup_factory; then
         log_error "Unable to restore NetworkManager configuration"
         exit 1
     fi

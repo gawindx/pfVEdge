@@ -4,11 +4,7 @@
 # Restore factory backup
 # -------------------------------------------------------------------
 
-# -------------------------------------------------------------------
-# Public restore
-# -------------------------------------------------------------------
-
-nm_restore_factory()
+nm_restore_backup_factory()
 {
     log_info "[NetworkManager] Starting factory configuration restore"
     if ! nm_factory_backup_exists; then

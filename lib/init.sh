@@ -128,8 +128,7 @@ set_defaults()
     NET_STATE_FILE="${BACKUP_DIR}/network.initialised"
 
     # NetworkManager
-    NM_BACKUP_DIR="${BACKUP_DIR}/nmcli"
-    NM_BACKUP_FACTORY="${NM_BACKUP_DIR}/factory"
+    NM_BACKUP_DIR="${BACKUP_DIR}/nmcli-factory"
     NM_CONNECTION_DIR="/etc/NetworkManager/system-connections"
     NM_FORCE_FACTORY_BACKUP="${NM_FORCE_FACTORY_BACKUP:-false}"
     NM_CHECKPOINT_TIMEOUT=300

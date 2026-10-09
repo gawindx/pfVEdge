@@ -130,11 +130,8 @@ set_defaults()
     # NetworkManager
     NM_BACKUP_DIR="${BACKUP_DIR}/nmcli"
     NM_BACKUP_FACTORY="${NM_BACKUP_DIR}/factory"
-    NM_BACKUP_STABLE="${NM_BACKUP_DIR}/stable"
-    NM_BACKUP_TRANSACTION="${NM_BACKUP_DIR}/transaction"
     NM_CONNECTION_DIR="/etc/NetworkManager/system-connections"
     NM_FORCE_FACTORY_BACKUP="${NM_FORCE_FACTORY_BACKUP:-false}"
-    NM_HASH_FILE="${NM_BACKUP_DIR}/current.sha256"
     NM_CHECKPOINT_TIMEOUT=300
     NM_CHECKPOINT=""
 

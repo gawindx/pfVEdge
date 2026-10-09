@@ -1,93 +1,8 @@
 #!/usr/bin/env bash
 
 # -------------------------------------------------------------------
-# Compute configuration hash
+# Restore factory backup
 # -------------------------------------------------------------------
-
-nm_compute_hash()
-{
-    find "$NM_CONNECTION_DIR" \
-        -type f \
-        -name "*.nmconnection" \
-        -print0 2>/dev/null \
-    | sort -z \
-    | xargs -0 sha256sum 2>/dev/null \
-    | sha256sum \
-    | awk '{print $1}'
-}
-
-# -------------------------------------------------------------------
-# Detect changes
-#
-# return:
-# 0 changed
-# 1 unchanged
-# -------------------------------------------------------------------
-
-nm_has_changed()
-{
-    local current
-    current=$(nm_compute_hash)
-    [[ ! -f "$NM_HASH_FILE" ]] && return 0
-    [[ "$current" != "$(cat "$NM_HASH_FILE")" ]]
-}
-
-# -------------------------------------------------------------------
-# Update current hash
-# -------------------------------------------------------------------
-
-nm_update_hash()
-{
-    mkdir -p "$NM_BACKUP_DIR"
-    nm_compute_hash > "$NM_HASH_FILE"
-}
-
-# -------------------------------------------------------------------
-# Generic backup
-# -------------------------------------------------------------------
-
-_nm_backup()
-{
-    local destination="$1"
-    if ! nm_has_changed; then
-        log_info "[NM] NetworkManager configuration unchanged"
-        return 0
-    fi
-    mkdir -p "$destination"
-    cp -a "${NM_CONNECTION_DIR}/." "$destination/"
-    nm_update_hash
-    log_info "[NM] Backup created: $destination"
-}
-
-nm_backup_stable()
-{
-    _nm_backup "$NM_BACKUP_STABLE"
-}
-
-# -------------------------------------------------------------------
-# Generic restore
-# -------------------------------------------------------------------
-
-_nm_restore()
-{
-    local source="$1"
-    if [[ ! -d "$source" ]]; then
-        log_error "[NM] Backup does not exist: $source"
-        return 1
-    fi
-    log_warn "[NM] Restoring NetworkManager from $source"
-    systemctl stop NetworkManager
-    rm -f "${NM_CONNECTION_DIR}"/*
-    cp -a "${source}/." "$NM_CONNECTION_DIR/"
-    selinux_rcon "$NM_CONNECTION_DIR/"
-    chmod 600 "${NM_CONNECTION_DIR}"/* 2>/dev/null
-    nm_reload
-    if nm_has_bridges; then
-        nm_remove_bridges
-    fi
-    nm_update_hash
-    log_info "[NM] Restore completed"
-}
 
 # -------------------------------------------------------------------
 # Public restore
@@ -165,44 +80,6 @@ nm_restore_factory()
     return 0
 }
 
-nm_restore_stable()
-{
-    _nm_restore "$NM_BACKUP_STABLE"
-}
-
-nm_restore_transaction()
-{
-    _nm_restore "$NM_BACKUP_TRANSACTION"
-}
-
-# -------------------------------------------------------------------
-# Create NetworkManager snapshots
-# -------------------------------------------------------------------
-
-nm_backup_transaction()
-{
-    _nm_backup "$NM_BACKUP_TRANSACTION"
-}
-
-# -------------------------------------------------------------------
-# Reload / restart
-# -------------------------------------------------------------------
-
-nm_reload()
-{
-    systemctl start NetworkManager
-    if ! nm_wait_ready 30; then
-        log_error "[NM] NetworkManager is not ready"
-        return 1
-    fi
-    nmcli connection reload
-}
-
-nm_restart()
-{
-    systemctl restart NetworkManager
-}
-
 # -------------------------------------------------------------------
 # Wait ready
 # -------------------------------------------------------------------
@@ -219,51 +96,6 @@ nm_wait_ready()
         ((i++))
     done
     return 1
-}
-
-# -------------------------------------------------------------------
-# Remove bridge profiles only
-# -------------------------------------------------------------------
-
-nm_remove_bridges()
-{
-    local bridges
-    bridges=$(nmcli -t -f NAME,TYPE connection show \
-        | awk -F: '$2=="bridge"{print $1}')
-    [[ -z "$bridges" ]] && return 0
-    while read -r bridge; do
-        if [[ " ${BRIDGE_NAMES[*]} " =~ [[:space:]]${bridge}[[:space:]] ]]; then
-            log_info "[NM] Removing bridge: $bridge"
-            nmcli connection delete "$bridge"
-        fi
-    done <<< "$bridges"
-}
-
-# -------------------------------------------------------------------
-# Check bridges
-# -------------------------------------------------------------------
-
-nm_has_bridges()
-{
-    nmcli -t -f TYPE connection show \
-        | grep -qx "bridge"
-}
-
-# -------------------------------------------------------------------
-# NetworkManager reset
-# -------------------------------------------------------------------
-
-nm_reset()
-{
-    log_warn "[NM] Resetting NetworkManager"
-    systemctl stop NetworkManager
-    rm -f "${NM_CONNECTION_DIR}"/*
-    rm -f /var/lib/NetworkManager/NetworkManager.state
-    nm_reload
-    if nm_has_bridges; then
-        nm_remove_bridges
-    fi
-    log_info "[NM] NetworkManager reset done"
 }
 
 # -------------------------------------------------------------------
@@ -378,7 +210,7 @@ nm_checkpoint_destroy()
 }
 
 # -------------------------------------------------------------------
-# Verify if backup already exists 
+# Verify if backup already exists
 # -------------------------------------------------------------------
 
 nm_factory_backup_exists()
@@ -417,7 +249,7 @@ nm_backup_factory()
 }
 
 # -------------------------------------------------------------------
-# Create factory backup 
+# Create factory backup
 # -------------------------------------------------------------------
 
 nm_create_backup_factory()
@@ -453,5 +285,3 @@ nm_create_backup_factory()
     selinux_rcon "$NM_BACKUP_FACTORY/"
     return 0
 }
-
-

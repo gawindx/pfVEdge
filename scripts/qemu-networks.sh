@@ -72,10 +72,6 @@ log_info "[Network] Applying MTU"
 set_mtu
 log_info "[Network] Applying sysctl"
 apply_sysctl
-log_info "[Network] Verify if User's config exists"
-#[[ ! -d "$(profile_path recovery)" ]] && \
-#    log_info "[Network] User's config missing, create it!"
-#save_profile
 
 # ============================================================
 # Firewalld
@@ -90,8 +86,7 @@ configure_firewall pfVEdge
 
 if ! validate_bridges
 then
-    log_error "[Network] Bridge validation failed"
-#    nm_restore_transaction
+    log_error "[Network] Bridge validation failed"  
     nm_checkpoint_rollback
     exit 1
 fi
@@ -118,11 +113,9 @@ then
 fi
 
 # ============================================================
-# Commit
+# Destroy useless checkpoint
 # ============================================================
 
-#log_info "[Network] Saving stable configuration"
-#nm_backup_stable
 nm_checkpoint_destroy
 
 # ============================================================

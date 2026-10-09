@@ -104,6 +104,16 @@ nm_checkpoint_create()
 
     log_info "[NetworkManager] Creating global checkpoint"
     log_info "[NetworkManager] Checkpoint rollback timeout: ${NM_CHECKPOINT_TIMEOUT}s"
+    # Create a checkpoint using the D-Bus interface of NetworkManager
+    # The CheckpointCreate method takes the following parameters:
+    # - aouu: an array of object paths (empty in this case)
+    # - 0: the checkpoint timeout in seconds
+    # - 14: the checkpoint flags (14 means "include all connections and devices")
+    #      DESTROY_ALL                  0x01
+    #      DELETE_NEW_CONNECTIONS       0x02  *
+    #      DISCONNECT_NEW_DEVICES       0x04  *
+    #      ALLOW_OVERLAPPING            0x08  *
+    # The method returns the object path of the created checkpoint.
     checkpoint="$(
         busctl --system call \
             org.freedesktop.NetworkManager \
@@ -113,7 +123,7 @@ nm_checkpoint_create()
             aouu \
             0 \
             "$NM_CHECKPOINT_TIMEOUT" \
-            6
+            14
     )" || {
         log_error "[NetworkManager] Failed to create NetworkManager checkpoint"
         return 1

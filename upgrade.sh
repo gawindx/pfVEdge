@@ -64,7 +64,6 @@ migrate_configuration()
     backup_dir="${BACKUP_DIR:-/var/lib/pfVEdge}"
     log_level="${LOG_LEVEL:-INFO}"
     net_init="${NET_INIT:-false}"
-    nm_auto_migrate="${NM_AUTO_MIGRATE_IFACE:-false}"
     nm_force_factory="${NM_FORCE_FACTORY_BACKUP:-false}"
     fwd_allow_ssh="${FWD_ALLOW_SSH_HOST:-false}"
     fwd_gw_offset="${FWD_GW_OFFSET:-1}"
@@ -81,7 +80,6 @@ migrate_configuration()
         printf '  "network": {\n'
         printf '    "initialize": %s,\n' "$net_init"
         printf '    "network_manager": {\n'
-        printf '      "auto_migrate_interface": %s,\n' "$nm_auto_migrate"
         printf '      "force_factory_backup": %s\n' "$nm_force_factory"
         printf '    },\n'
         printf '    "firewalld": {\n'

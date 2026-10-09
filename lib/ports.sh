@@ -28,14 +28,8 @@ handle_nm_migration() {
         log_debug "[Attach Ports] Active Connection for '$iface' is '$existing_conn'"
         return
     fi
-    if [[ "$NM_AUTO_MIGRATE_IFACE" != "true" ]]; then
-        log_error "[Attach Ports] Interface '$iface' is already managed by NetworkManager profile:"
-        log_error "[Attach Ports]  \"$existing_conn\""
-        log_error "[Attach Ports] "
-        log_error "[Attach Ports] Automatic migration is available."
-        log_error "[Attach Ports] Set NM_AUTO_MIGRATE_IFACE=true"
-        exit "$E_INTERFACE"
-    fi
+    log_warn "[Attach Ports] Interface '$iface' is already managed by NetworkManager profile:"
+    log_warn "[Attach Ports]  \"$existing_conn\""
     log_info "[Attach Ports] Migrating '$iface' to bridge '$bridge'"
     log_debug "[Attach Ports] iface down '$existing_conn' for migration"
     run nmcli connection down "$existing_conn"

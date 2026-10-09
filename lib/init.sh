@@ -128,7 +128,6 @@ set_defaults()
     NET_STATE_FILE="${BACKUP_DIR}/network.initialised"
 
     # NetworkManager
-    NM_AUTO_MIGRATE_IFACE=$(trim "${NM_AUTO_MIGRATE_IFACE:-false}")
     NM_BACKUP_DIR="${BACKUP_DIR}/nmcli"
     NM_BACKUP_FACTORY="${NM_BACKUP_DIR}/factory"
     NM_BACKUP_STABLE="${NM_BACKUP_DIR}/stable"

@@ -69,7 +69,6 @@ Example:
   "network": {
     "initialize": false,
     "network_manager": {
-      "auto_migrate_interface": false,
       "force_factory_backup": false
     },
     "firewalld": {
@@ -92,14 +91,6 @@ Requests network initialization by pfVEdge.
 ---
 
 ## NetworkManager
-
-### `auto_migrate_interface`
-
-Controls automatic migration of interfaces to the NetworkManager connections used by pfVEdge.
-
-```json
-"auto_migrate_interface": false
-```
 
 ### `force_factory_backup`
 
@@ -270,7 +261,6 @@ Default:
   "network": {
     "initialize": false,
     "network_manager": {
-      "auto_migrate_interface": false,
       "force_factory_backup": false
     },
     "firewalld": {

@@ -21,7 +21,6 @@ load_json_config()
         IFS= read -r -d '' BACKUP_DIR
         IFS= read -r -d '' LOG_LEVEL
         IFS= read -r -d '' NET_INIT
-        IFS= read -r -d '' NM_AUTO_MIGRATE_IFACE
         IFS= read -r -d '' NM_FORCE_FACTORY_BACKUP
         IFS= read -r -d '' FWD_ALLOW_SSH_HOST
         IFS= read -r -d '' FWD_GW_OFFSET
@@ -32,7 +31,6 @@ load_json_config()
                 (.backup_dir // "/var/lib/pfVEdge"),
                 (.log_level // "info"),
                 (.network.initialize // false),
-                (.network.network_manager.auto_migrate_interface // false),
                 (.network.network_manager.force_factory_backup // false),
                 (.network.firewalld.allow_ssh_host // false),
                 (.network.gateway_offset // 1),
@@ -159,10 +157,6 @@ validate_config()
     log_info "[Parser] Validating configuration"
 
     validate_boolean "$NET_INIT" "network.initialize" || return 1
-    validate_boolean \
-        "$NM_AUTO_MIGRATE_IFACE" \
-        "network.network_manager.auto_migrate_interface" \
-        || return 1
 
     validate_boolean \
         "$NM_FORCE_FACTORY_BACKUP" \

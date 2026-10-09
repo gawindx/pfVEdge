@@ -28,10 +28,6 @@
 
     "network_manager": {
 
-      // Automatically migrate an existing physical interface to the
-      // NetworkManager configuration managed by pfVEdge.
-      "auto_migrate_interface": false,
-
       // Force creation of a factory backup before modifying NetworkManager
       // configuration.
       "force_factory_backup": false

@@ -218,6 +218,113 @@ create_recovery_fwall_rules()
     [[ -e "${NET_STATE_FILE}" ]] && rm -f ${NET_STATE_FILE}
 }
 
+# -------------------------------------------------------------------
+# Factory backup
+# -------------------------------------------------------------------
+
+fwd_factory_backup_exists()
+{
+    [[ -f "${FWD_FACTORY_BACKUP_DIR}/.factory-backup-complete" ]] &&
+        [[ -d "${FWD_FACTORY_BACKUP_DIR}/config" ]]
+}
+
+fwd_backup_factory()
+{
+    local backup_dir="$FWD_FACTORY_BACKUP_DIR"
+    local temp_dir="${backup_dir}.tmp.$$"
+
+    if ! check_firewalld; then
+        log_warn "[Firewalld] firewalld is not installed; skipping factory backup"
+        return 0
+    fi
+
+    if fwd_factory_backup_exists; then
+        log_info "[Firewalld] Existing factory backup will be preserved"
+        return 0
+    fi
+
+    if [[ ! -d "$FWD_CFG_DIR" ]]; then
+        log_error "[Firewalld] Configuration directory not found: $FWD_CFG_DIR"
+        return 1
+    fi
+
+    log_info "[Firewalld] Creating factory backup"
+
+    rm -rf -- "$temp_dir"
+    mkdir -p "$temp_dir" || return 1
+
+    if ! cp -a -- "$FWD_CFG_DIR" "$temp_dir/config"; then
+        log_error "[Firewalld] Failed to copy factory configuration"
+        rm -rf -- "$temp_dir"
+        return 1
+    fi
+
+    if ! touch "$temp_dir/.factory-backup-complete"; then
+        log_error "[Firewalld] Failed to mark factory backup as complete"
+        rm -rf -- "$temp_dir"
+        return 1
+    fi
+
+    mkdir -p "$(dirname "$backup_dir")" || {
+        rm -rf -- "$temp_dir"
+        return 1
+    }
+
+    rm -rf -- "$backup_dir"
+
+    if ! mv -- "$temp_dir" "$backup_dir"; then
+        log_error "[Firewalld] Failed to finalize factory backup"
+        rm -rf -- "$temp_dir"
+        return 1
+    fi
+
+    selinux_rcon "$backup_dir"
+    log_info "[Firewalld] Factory backup created: $backup_dir"
+}
+
+fwd_restore_backup_factory()
+{
+    local backup_dir="$FWD_FACTORY_BACKUP_DIR"
+
+    if ! fwd_factory_backup_exists; then
+        log_error "[Firewalld] Valid factory backup not found: $backup_dir"
+        return 1
+    fi
+
+    log_info "[Firewalld] Restoring factory configuration"
+
+    if ! systemctl stop firewalld; then
+        log_error "[Firewalld] Failed to stop firewalld"
+        return 1
+    fi
+
+    if ! rm -rf -- "$FWD_CFG_DIR"; then
+        log_error "[Firewalld] Failed to remove current configuration"
+        systemctl start firewalld || true
+        return 1
+    fi
+
+    if ! cp -a -- "$backup_dir/config" "$FWD_CFG_DIR"; then
+        log_error "[Firewalld] Failed to restore factory configuration"
+        systemctl start firewalld || true
+        return 1
+    fi
+
+    selinux_rcon "$FWD_CFG_DIR"
+
+    if ! systemctl start firewalld; then
+        log_error "[Firewalld] Failed to start firewalld after restoration"
+        return 1
+    fi
+
+    if ! firewall-cmd --reload; then
+        log_error "[Firewalld] Failed to reload restored configuration"
+        return 1
+    fi
+
+    log_info "[Firewalld] Factory configuration restored successfully"
+}
+
 # -----------------------------------------------------------------------------
 # Save / Apply
 # -----------------------------------------------------------------------------

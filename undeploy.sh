@@ -22,6 +22,31 @@ fi
 echo "[INFO] Undeploying from $PROJECT_DIR"
 
 # ==========================================
+# LOAD RESTORE FUNCTIONS
+# ==========================================
+
+LOG_LEVEL="INFO"
+
+BACKUP_DIR="/var/lib/pfVEdge"
+if command -v jq >/dev/null 2>&1 &&
+   [[ -f "${PROJECT_DIR}/config/config.json" ]]; then
+    BACKUP_DIR="$(jq -r '.backup_dir // "/var/lib/pfVEdge"' \
+        "${PROJECT_DIR}/config/config.json" 2>/dev/null)" ||
+        BACKUP_DIR="/var/lib/pfVEdge"
+fi
+
+NM_BACKUP_DIR="${BACKUP_DIR}/nmcli-factory"
+NM_CONNECTION_DIR="/etc/NetworkManager/system-connections"
+
+FWD_FACTORY_BACKUP_DIR="${BACKUP_DIR}/firewalld-factory"
+FWD_CFG_DIR="/etc/firewalld"
+
+source "${PROJECT_DIR}/lib/logging.sh"
+source "${PROJECT_DIR}/lib/utils.sh"
+source "${PROJECT_DIR}/lib/networkmanager.sh"
+source "${PROJECT_DIR}/lib/firewalld.sh"
+
+# ==========================================
 # STOP + DISABLE ALL UNITS (DYNAMIC)
 # ==========================================
 
@@ -56,10 +81,22 @@ find "$SERVICES_DIR/etc" -type f | while read -r file; do
 done
 
 # ==========================================
-# RELOAD USER PROFILE FIREWALLD
+# RESTORE FACTORY CONFIGURATION
 # ==========================================
 
-"${PROJECT_DIR}"/scripts/firewalld-profile.sh apply user
+RESTORE_FAILED=false
+
+echo "[INFO] Restoring NetworkManager factory configuration"
+if ! nm_restore_backup_factory; then
+    echo "[ERROR] NetworkManager factory restoration failed" >&2
+    RESTORE_FAILED=true
+fi
+
+echo "[INFO] Restoring firewalld factory configuration"
+if ! fwd_restore_backup_factory; then
+    echo "[ERROR] firewalld factory restoration failed" >&2
+    RESTORE_FAILED=true
+fi
 
 # ==========================================
 # RELOAD SYSTEMD
@@ -98,6 +135,11 @@ podman images --format "{{.Repository}}:{{.Tag}}" \
 # ==========================================
 # DONE
 # ==========================================
+
+if [[ "$RESTORE_FAILED" == "true" ]]; then
+    echo "[ERROR] Undeploy completed with restoration errors" >&2
+    exit 1
+fi
 
 echo ""
 echo "===================================="

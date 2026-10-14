@@ -26,9 +26,11 @@ log_info "[Network] Starting qemu network preparation"
 # Transaction backup
 # ============================================================
 
-log_info "[Network] Checking factory backup"
+log_info "[Network] Checking NetworkManager factory backup"
 nm_backup_factory
-log_info "[Network] Creating transaction backup"
+log_info "[Network] Checking firewalld factory backup"
+fwd_backup_factory
+log_info "[Network] Creating NetworkManager transaction checkpoint"
 nm_checkpoint_create
 
 # ============================================================

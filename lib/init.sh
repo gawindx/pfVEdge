@@ -150,6 +150,7 @@ set_defaults()
     # Firewalld
     FWD_ALLOW_SSH_HOST=$(trim "${FWD_ALLOW_SSH_HOST:-false}")
     FWD_BACKUP_DIR="${BACKUP_DIR}/firewalld"
+    FWD_FACTORY_BACKUP_DIR="${BACKUP_DIR}/firewalld-factory"
     FWD_CFG_DIR="/etc/firewalld"
     FWD_TMP_DIR="/run/pfVEdge-firewalld"
     FWD_GW_OFFSET="${FWD_GW_OFFSET:-1}"

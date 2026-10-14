@@ -2,6 +2,18 @@
 
 All notable changes to pfVEdge are documented in this file.
 
+## [0.5b.2] - 2026-10-14
+
+### Added
+
+* Added a factory backup of the original firewalld configuration.
+* Added firewalld factory backup creation alongside the NetworkManager factory backup.
+* Added restoration of NetworkManager and firewalld configurations during pfVEdge uninstallation.
+
+### Improved
+
+* Preserved existing factory backups across subsequent deployments.
+* Separated firewalld factory backups from operational configuration snapshots to support restoration of the original host configuration.
 
 ## [0.5b.1] - 2026-10-09
 
